@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE pinplan>
+<pinplan intended_family="Cyclone IV E" variation_name="serializer" megafunction_name="ALTLVDS_TX" specifies="all_ports">
+<global>
+<pin name="tx_in[29..0]" direction="input" scope="external"  />
+<pin name="tx_inclock" direction="input" scope="external"  />
+<pin name="tx_syncclock" direction="input" scope="external"  />
+<pin name="tx_out[2..0]" direction="output" scope="external"  />
+
+</global>
+</pinplan>

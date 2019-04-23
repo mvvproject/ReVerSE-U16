@@ -1,0 +1,67 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       15/04/21 23:37:10
+Executable Image: vgabios.rom
+creating a DOS executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          c000:1000            00004d70
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+_VGASEG                CODE           AUTO           c000:0000       00000525
+_TEXT                  CODE           DGROUP         c000:1000       000012ac
+_DATA                  DATA           DGROUP         c000:4000       00001d70
+CONST                  DATA           DGROUP         c5d7:0000       00000000
+CONST2                 DATA           DGROUP         c5d7:0000       00000000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: vgabios.obj(D:\Proj_my\ZET BASE\U16\2015_04_21a U16_ZET (USB KeyB)\_ZET_BOOT\src\Ver_1_2_0\bios\vgabios.c)
+c000:4094+     _video_param_table
+c000:4d54+     _video_save_pointer_table
+c000:1038      _int10_func
+c000:2112      _printf
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
+c000:22ac      _small_code_
+c000:22ac*     CodeModelMismatch
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\WATCOM/lib286/dos\clibs.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  1000 (4096.)
+Memory size:  354c (13644.)
+Entry point address: c000:0000
+Link time: 00:00.00

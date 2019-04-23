@@ -1,0 +1,371 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2010 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II 64-Bit
+# Version 10.0 Build 262 08/18/2010 Service Pack 1 SJ Full Version
+# Date created = 00:55:40  November 10, 2010
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		kotku_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+
+# Project-Wide Assignments
+# ========================
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 9.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:09:38  MARCH 18, 2009"
+set_global_assignment -name LAST_QUARTUS_VERSION "13.0 SP1.DP6"
+
+# Pin & Location Assignments
+# ==========================
+set_location_assignment PIN_25 -to clk_50_
+set_location_assignment PIN_110 -to sd_sclk_
+set_location_assignment PIN_69 -to sdram_addr_[11]
+set_location_assignment PIN_99 -to sdram_addr_[10]
+set_location_assignment PIN_67 -to sdram_addr_[9]
+set_location_assignment PIN_85 -to sdram_addr_[8]
+set_location_assignment PIN_83 -to sdram_addr_[7]
+set_location_assignment PIN_80 -to sdram_addr_[6]
+set_location_assignment PIN_77 -to sdram_addr_[5]
+set_location_assignment PIN_76 -to sdram_addr_[4]
+set_location_assignment PIN_105 -to sdram_addr_[3]
+set_location_assignment PIN_87 -to sdram_addr_[2]
+set_location_assignment PIN_86 -to sdram_addr_[1]
+set_location_assignment PIN_98 -to sdram_addr_[0]
+set_location_assignment PIN_100 -to sdram_ba_[1]
+set_location_assignment PIN_101 -to sdram_ba_[0]
+set_location_assignment PIN_43 -to sdram_clk_
+set_location_assignment PIN_103 -to sdram_ras_n_
+set_location_assignment PIN_58 -to sdram_data_[15]
+set_location_assignment PIN_42 -to sdram_data_[14]
+set_location_assignment PIN_59 -to sdram_data_[13]
+set_location_assignment PIN_44 -to sdram_data_[12]
+set_location_assignment PIN_46 -to sdram_data_[11]
+set_location_assignment PIN_60 -to sdram_data_[10]
+set_location_assignment PIN_64 -to sdram_data_[9]
+set_location_assignment PIN_65 -to sdram_data_[8]
+set_location_assignment PIN_120 -to sdram_data_[7]
+set_location_assignment PIN_121 -to sdram_data_[6]
+set_location_assignment PIN_125 -to sdram_data_[5]
+set_location_assignment PIN_135 -to sdram_data_[4]
+set_location_assignment PIN_136 -to sdram_data_[3]
+set_location_assignment PIN_137 -to sdram_data_[2]
+set_location_assignment PIN_141 -to sdram_data_[1]
+set_location_assignment PIN_142 -to sdram_data_[0]
+set_location_assignment PIN_106 -to sdram_cas_n_
+set_location_assignment PIN_104 -to sdram_we_n_
+set_location_assignment PIN_66 -to sdram_dqm_[1]
+set_location_assignment PIN_119 -to sdram_dqm_[0]
+set_location_assignment PIN_114 -to sd_ss_
+set_location_assignment PIN_126 -to sd_miso_
+set_location_assignment PIN_111 -to sd_mosi_
+set_location_assignment PIN_71 -to speaker_l_
+set_location_assignment PIN_72 -to speaker_r_
+
+# Classic Timing Assignments
+# ==========================
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ENABLE_CLOCK_LATENCY ON
+
+# Analysis & Synthesis Assignments
+# ================================
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name TOP_LEVEL_ENTITY kotku
+set_global_assignment -name DEVICE_FILTER_PACKAGE TQFP
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 144
+set_global_assignment -name ADD_PASS_THROUGH_LOGIC_TO_INFERRED_RAMS OFF
+
+# Fitter Assignments
+# ==================
+set_global_assignment -name DEVICE EP4CE22E22C7
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "AS INPUT TRI-STATED"
+
+# EDA Netlist Writer Assignments
+# ==============================
+set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
+
+# Assembler Assignments
+# =====================
+set_global_assignment -name STRATIX_CONFIGURATION_DEVICE EPCS4
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+
+# Simulator Assignments
+# =====================
+set_global_assignment -name SIMULATION_MODE FUNCTIONAL
+
+# SignalTap II Assignments
+# ========================
+set_global_assignment -name ENABLE_SIGNALTAP ON
+
+# Incremental Compilation Assignments
+# ===================================
+
+# Advanced I/O Timing Assignments
+# ===============================
+set_global_assignment -name ENABLE_ADVANCED_IO_TIMING ON
+
+# start EDA_TOOL_SETTINGS(eda_simulation)
+# ---------------------------------------
+
+# EDA Netlist Writer Assignments
+# ==============================
+set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT NONE -section_id eda_simulation
+
+# end EDA_TOOL_SETTINGS(eda_simulation)
+# -------------------------------------
+
+# start EDA_TOOL_SETTINGS(eda_blast_fpga)
+# ---------------------------------------
+
+# Analysis & Synthesis Assignments
+# ================================
+set_global_assignment -name USE_GENERATED_PHYSICAL_CONSTRAINTS OFF -section_id eda_blast_fpga
+
+# end EDA_TOOL_SETTINGS(eda_blast_fpga)
+# -------------------------------------
+
+# start CLOCK(clk_50_)
+# --------------------
+
+# Classic Timing Assignments
+# ==========================
+set_global_assignment -name FMAX_REQUIREMENT "50 MHz" -section_id clk_50_
+
+# end CLOCK(clk_50_)
+# ------------------
+
+# -------------------
+# start ENTITY(kotku)
+
+# Pin & Location Assignments
+# ==========================
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[0]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[1]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[2]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[3]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[4]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[5]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[6]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[7]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[8]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[9]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[10]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[11]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to sdram_addr_[12]
+
+# Classic Timing Assignments
+# ==========================
+set_instance_assignment -name CLOCK_SETTINGS clk_50_ -to clk_50_
+
+# Fitter Assignments
+# ==================
+# start LOGICLOCK_REGION(Root Region)
+# -----------------------------------
+
+# LogicLock Region Assignments
+# ============================
+set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
+set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
+
+# end LOGICLOCK_REGION(Root Region)
+# ---------------------------------
+
+# start DESIGN_PARTITION(Top)
+# ---------------------------
+
+# Incremental Compilation Assignments
+# ===================================
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT -section_id Top
+
+# end DESIGN_PARTITION(Top)
+# -------------------------
+
+# end ENTITY(kotku)
+# -----------------
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 7
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_location_assignment PIN_68 -to sdram_addr_[12]
+set_global_assignment -name RESERVE_DATA7_THROUGH_DATA2_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_OTHER_AP_PINS_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name CYCLONEIII_CONFIGURATION_DEVICE AUTO
+set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+set_global_assignment -name SLD_FILE "C:/Users/mvv/Desktop/zet/boards/reverse-u16/syn/stp1_auto_stripped.stp"
+set_location_assignment PIN_6 -to asdo_
+set_location_assignment PIN_13 -to data0_
+set_location_assignment PIN_12 -to dclk_
+set_location_assignment PIN_113 -to hdmi_clk
+set_location_assignment PIN_133 -to hdmi_d0
+set_location_assignment PIN_144 -to hdmi_d1
+set_location_assignment PIN_143 -to hdmi_d1n
+set_location_assignment PIN_10 -to hdmi_d2
+set_location_assignment PIN_8 -to ncso_
+set_instance_assignment -name IO_STANDARD LVDS_E_3R -to hdmi_clk
+set_location_assignment PIN_112 -to "hdmi_clk(n)"
+set_instance_assignment -name IO_STANDARD LVDS_E_3R -to hdmi_d0
+set_location_assignment PIN_132 -to "hdmi_d0(n)"
+set_instance_assignment -name IO_STANDARD LVDS_E_3R -to hdmi_d2
+set_location_assignment PIN_11 -to "hdmi_d2(n)"
+set_location_assignment PIN_49 -to usb_ps2ms_clk_
+set_location_assignment PIN_50 -to usb_ps2ms_dat_
+set_location_assignment PIN_32 -to usb_reset_n_
+set_location_assignment PIN_52 -to usb_ps2kb_clk_
+set_location_assignment PIN_51 -to usb_ps2kb_dat_
+set_location_assignment PIN_53 -to uart_rxd_
+set_location_assignment PIN_39 -to uart_txd_
+set_global_assignment -name SDC_FILE u16.sdc
+
+set_global_assignment -name VERILOG_FILE ../rtl/pll/pll.v
+
+set_global_assignment -name VHDL_FILE ../rtl/hdmi/serializer.vhd
+set_global_assignment -name VHDL_FILE ../rtl/hdmi/hdmi.vhd
+set_global_assignment -name VHDL_FILE ../rtl/hdmi/encoder.vhd
+
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_write_iface.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_read_iface.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_mem_arbitrer.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_cpu_mem_iface.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_config_iface.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_char_rom.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_c4_iface.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_text_mode_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_planar_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_linear_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_sequencer_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_palette_regs_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_pal_dac_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_lcd_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_fifo.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_dac_regs_fml.v
+set_global_assignment -name VERILOG_FILE ../rtl/vga/vga_crtc_fml.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/wb_switch/wb_switch.v
+set_global_assignment -name VERILOG_FILE ../rtl/wb_switch/sw_leds.v
+
+set_global_assignment -name VHDL_FILE ../rtl/flash/spi_flash.vhd
+set_global_assignment -name VERILOG_FILE ../rtl/flash/flash8.v
+set_global_assignment -name LICENSE_FILE ../rtl/flash/exec_rom.dat
+set_global_assignment -name VERILOG_FILE ../rtl/flash/exec_rom.v
+set_global_assignment -name VERILOG_FILE ../rtl/flash/bootrom.v
+set_global_assignment -name LICENSE_FILE ../rtl/flash/bootrom.dat
+
+set_global_assignment -name VERILOG_FILE ../rtl/speaker/speaker.v
+set_global_assignment -name VERILOG_FILE ../rtl/sound/sound.v
+set_global_assignment -name VHDL_FILE ../rtl/dac/dac.vhd
+
+set_global_assignment -name VERILOG_FILE ../rtl/serial/serial_atx.v
+set_global_assignment -name VERILOG_FILE ../rtl/serial/serial_arx.v
+set_global_assignment -name VERILOG_FILE ../rtl/serial/serial.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/timer/clk_gen.v
+set_global_assignment -name VERILOG_FILE ../rtl/timer/timer.v
+set_global_assignment -name VERILOG_FILE ../rtl/timer/timer_counter.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2_mouse_nofifo.v
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2_mouse_datain.v
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2_mouse_cmdout.v
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2_mouse.v
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2_keyb_xtcodes.v
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2_keyb.v
+set_global_assignment -name VERILOG_FILE ../rtl/ps2/ps2.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/kotku.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/pic/simple_pic.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc_sdrio.v
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc_banktimer.v
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc_busif.v
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc_ctlif.v
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc_datactl.v
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc_mgmt.v
+set_global_assignment -name VERILOG_FILE ../rtl/hpdmc_sdr16/hpdmc.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/fmlarb/fmlarb.v
+set_global_assignment -name VERILOG_FILE ../rtl/fmlbrg/fmlbrg_datamem.v
+set_global_assignment -name VERILOG_FILE ../rtl/fmlbrg/fmlbrg_tagmem.v
+set_global_assignment -name VERILOG_FILE ../rtl/fmlbrg/fmlbrg.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/csrbrg/csrbrg.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/wb_abrg/wb_abrgr.v
+set_global_assignment -name VERILOG_FILE ../rtl/wb_abrg/wb_abrg.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/sdspi/sdspi.v
+
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_wb_master.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_signmul17.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_shrot.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_rxr16.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_rxr8.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_regfile.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_othop.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_opcode_deco.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_nstate.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_next_or_not.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_mux8_16.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_mux8_1.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_muldiv.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_micro_rom.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_micro_data.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_memory_regs.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_jmp_cond.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_fulladd16.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_fetch.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_exec.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_div_uu.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_div_su.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_decode.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_core.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_conv.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_bitlog.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_arlog.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_alu.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet_addsub.v
+set_global_assignment -name VERILOG_FILE ../rtl/zet/zet.v
+
+set_global_assignment -name SIGNALTAP_FILE stp1.stp
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

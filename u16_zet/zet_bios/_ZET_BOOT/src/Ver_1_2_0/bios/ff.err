@@ -1,0 +1,2 @@
+..\tools\ff.c(26): Warning! W131: No prototype found for function 'atoi'
+..\tools\ff.c(30): Warning! W131: No prototype found for function 'write'

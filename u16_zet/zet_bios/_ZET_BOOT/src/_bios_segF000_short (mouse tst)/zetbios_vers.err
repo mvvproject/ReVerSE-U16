@@ -1,0 +1,12 @@
+zetbios_vers.c(407): Warning! W202: Symbol 'cmd' has been defined, but not referenced
+zetbios_vers.c(408): Warning! W202: Symbol 'val_w' has been defined, but not referenced
+zetbios_vers.c(407): Warning! W202: Symbol 'readback' has been defined, but not referenced
+zetbios_vers.c(408): Warning! W202: Symbol 'addr' has been defined, but not referenced
+zetbios_vers.c(486): Warning! W202: Symbol 'current' has been defined, but not referenced
+zetbios_vers.c(487): Warning! W202: Symbol 'crtc_addr' has been defined, but not referenced
+zetbios_vers.c(532): Warning! W202: Symbol 'line' has been defined, but not referenced
+zetbios.h(212): Warning! W202: Symbol 'scan_to_scanascii' has been defined, but not referenced
+zetbios_vers.c(506): Warning! W202: Symbol 'biosfn_get_cursor_pos' has been defined, but not referenced
+zetbios_vers.c(518): Warning! W202: Symbol 'find_vga_entry' has been defined, but not referenced
+zetbios_vers.c(456): Warning! W202: Symbol 'mem_test' has been defined, but not referenced
+zetbios_vers.c(484): Warning! W202: Symbol 'biosfn_set_cursor_pos' has been defined, but not referenced

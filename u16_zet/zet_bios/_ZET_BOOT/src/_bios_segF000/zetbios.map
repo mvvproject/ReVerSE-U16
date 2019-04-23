@@ -1,0 +1,86 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       15/05/10 01:11:30
+Executable Image: zetbios.rom
+creating a DOS executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          f000:9000            000039d2
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+_DATA                  DATA           DGROUP         f000:9000       00000436
+_TEXT                  CODE           DGROUP         f000:a000       000029d2
+_BIOSSEG               CODE           AUTO           f000:e000       00002000
+CONST                  DATA           DGROUP         f943:0006       00000691
+CONST2                 DATA           DGROUP         f9ac:0008       00000000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: zetbios_vers.obj(D:\Proj_my\ZET BASE\U16\2015_05_09 U16_ZET\_ZET_BOOT\src\_bios_segF000\zetbios_vers.c)
+f000:a000*     _Delay
+f000:a4b0*     _CLS
+f000:a4e6      _int2_NMI_function
+f000:a6ec      _HLT
+f000:a6ee      _print_bios_banner
+f000:a71c      _mainZ
+f000:a73e      _init_boot_vectors
+f000:a8ac      _int09_function
+f000:ad98      _int16_function
+f000:b0fa      _int13_diskette_function
+f000:b754      _int13_harddisk
+f000:bdcc      _boot_halt
+f000:bddc      _int19_function
+f000:bee2      _int14_function
+f000:c0ac      _int15_function
+f000:c16a      _int15_function_mouse
+f000:c816      _int1a_function
+Module: C:\WATCOM/lib286/dos\clibs.lib(i4d)
+f000:c8ec*     __I4D
+f000:c935      __U4D
+Module: C:\WATCOM/lib286/dos\clibs.lib(i4m)
+f000:c9ba*     __I4M
+f000:c9ba      __U4M
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
+f000:c9d2      _small_code_
+f000:c9d2*     CodeModelMismatch
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\WATCOM/lib286/dos\clibs.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  1000 (4096.)
+Memory size:  54b0 (21680.)
+Entry point address: f000:e000
+Link time: 00:00.00

@@ -1,0 +1,14 @@
+cd D:\333_ZET_BOOT
+wmake -f D:\333_ZET_BOOT\Zbios.mk -h -e -a D:\333_ZET_BOOT\zetbios.obj
+wcc zetbios.c -i="C:\WATCOM/h" -w3 -e25 -zq -ecc -od -d2 -zu -1 -bt=dos -fo=.obj -ms
+zetbios.c(380): Warning! W111: Meaningless use of an expression
+zetbios.c(337): Warning! W202: Symbol 'readback' has been defined, but not referenced
+zetbios.c(337): Warning! W202: Symbol 'val' has been defined, but not referenced
+zetbios.c(338): Warning! W202: Symbol 'addr' has been defined, but not referenced
+zetbios.c(416): Warning! W202: Symbol 'current' has been defined, but not referenced
+zetbios.c(417): Warning! W202: Symbol 'crtc_addr' has been defined, but not referenced
+zetbios.c(462): Warning! W202: Symbol 'line' has been defined, but not referenced
+zetbios.h(212): Warning! W202: Symbol 'scan_to_scanascii' has been defined, but not referenced
+zetbios.c(436): Warning! W202: Symbol 'biosfn_get_cursor_pos' has been defined, but not referenced
+zetbios.c(448): Warning! W202: Symbol 'find_vga_entry' has been defined, but not referenced
+Execution complete

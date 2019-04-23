@@ -1,0 +1,17 @@
+BLOCK		START ADDRESS		END ADDRESS
+
+Page_0		0x00000000		0x000AF6E8
+setup.hex		0x000B0000		0x000B1FFF
+hegluk_19.hex		0x000B2000		0x000B5FFF
+trdos_605e.hex		0x000B6000		0x000B9FFF
+86.hex		0x000BA000		0x000BDFFF
+82.hex		0x000BE000		0x000C1FFF
+esxmmc.hex		0x000C2000		0x000C3FFF
+
+
+
+Notes:
+
+- Data checksum for this conversion is 0x154BDDD0
+
+- All the addresses in this file are byte addresses

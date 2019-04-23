@@ -1,0 +1,47 @@
+Future Technology Devices International Limited (c) 2007-2010, All Rights Reserved
+
+
+CPU_CORE =   VC2, CPU_RAM_SIZE= 16 KB, CPU_ROM_SIZE=256 KB
+
+Linker Version  = V1.0.1 Loader Version =  V1.0.1
+Thu Jun 21 18:34:52 2018
+
+
+=================================================================================================================
+
+SEGMENT_MAP    
+=================================================================================================================
+
+Start Address                  Segment Name                   Segment Size
+=================================================================================================================
+
+0003c0 .text                          000000e21d
+00e5dd .dataFlash                     000000006e
+000000 .dataRAM                       000000006e
+00006e .bss                           00000001be
+00022c .HeapRAM                       00000039d2
+
+=================================================================================================================
+
+SYMBOL_TABLE   
+=================================================================================================================
+
+SYM ADDRESS PUBLIC SYM NAME                SYM TYPE   MEM TYPE FILE NAME            SYM SIZE  
+NOTE:L=LABEL F=FUNCTION 0=FLASH and 1=RAM
+=================================================================================================================
+
+0043a number                         F              0 u16_vnc2_firmware_build.obj 0002c
+00466 iomux_setup                    F              0 u16_vnc2_firmware_build.obj 00088
+004ee main                           F              0 u16_vnc2_firmware_build.obj 00134
+00622 usbhost_connect_state          F              0 u16_vnc2_firmware_build.obj 00058
+0067a hid_attach                     F              0 u16_vnc2_firmware_build.obj 000e2
+0075c HID_detach                     F              0 u16_vnc2_firmware_build.obj 0002e
+0078a led                            F              0 u16_vnc2_firmware_build.obj 00014
+0079e firmware                       F              0 u16_vnc2_firmware_build.obj 00247
+0001e connectedCount                 L              1 u16_vnc2_firmware_build.obj 00004
+0006e buf                            L              1 u16_vnc2_firmware_build.obj 00040
+000ae buf2                           L              1 u16_vnc2_firmware_build.obj 00040
+000ee hUART                          L              1 u16_vnc2_firmware_build.obj 00002
+000f0 rxLock                         L              1 u16_vnc2_firmware_build.obj 00006
+000f6 spiLock                        L              1 u16_vnc2_firmware_build.obj 00006
+000fc hGPIO_PORT_A                   L              1 u16_vnc2_firmware_build.obj 00002

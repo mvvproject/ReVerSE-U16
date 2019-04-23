@@ -1,0 +1,211 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2015 Altera Corporation. All rights reserved.
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, the Altera Quartus II License Agreement,
+# the Altera MegaCore Function License Agreement, or other 
+# applicable license agreement, including, without limitation, 
+# that your use is for the sole purpose of programming logic 
+# devices manufactured by Altera and sold by Altera or its 
+# authorized distributors.  Please refer to the applicable 
+# agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II 64-Bit
+# Version 15.0.0 Build 145 04/22/2015 SJ Web Edition
+# Date created = 16:02:09  July 15, 2015
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		atari800-u16_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE22E22C8
+set_global_assignment -name TOP_LEVEL_ENTITY u16_atari800
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 15.0.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "16:02:09  JULY 15, 2015"
+set_global_assignment -name LAST_QUARTUS_VERSION "13.0 SP1.DP6"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY .
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_location_assignment PIN_25 -to CLK_50MHZ
+set_location_assignment PIN_43 -to DRAM_CLK
+set_location_assignment PIN_119 -to DRAM_DQML
+set_location_assignment PIN_64 -to DRAM_DQMH
+set_location_assignment PIN_104 -to DRAM_NWE
+set_location_assignment PIN_106 -to DRAM_NCAS
+set_location_assignment PIN_103 -to DRAM_NRAS
+set_location_assignment PIN_101 -to DRAM_BA[0]
+set_location_assignment PIN_100 -to DRAM_BA[1]
+set_location_assignment PIN_98 -to DRAM_A[0]
+set_location_assignment PIN_86 -to DRAM_A[1]
+set_location_assignment PIN_87 -to DRAM_A[2]
+set_location_assignment PIN_105 -to DRAM_A[3]
+set_location_assignment PIN_76 -to DRAM_A[4]
+set_location_assignment PIN_77 -to DRAM_A[5]
+set_location_assignment PIN_80 -to DRAM_A[6]
+set_location_assignment PIN_83 -to DRAM_A[7]
+set_location_assignment PIN_85 -to DRAM_A[8]
+set_location_assignment PIN_67 -to DRAM_A[9]
+set_location_assignment PIN_99 -to DRAM_A[10]
+set_location_assignment PIN_66 -to DRAM_A[11]
+set_location_assignment PIN_65 -to DRAM_A[12]
+set_location_assignment PIN_142 -to DRAM_DQ[0]
+set_location_assignment PIN_141 -to DRAM_DQ[1]
+set_location_assignment PIN_137 -to DRAM_DQ[2]
+set_location_assignment PIN_136 -to DRAM_DQ[3]
+set_location_assignment PIN_135 -to DRAM_DQ[4]
+set_location_assignment PIN_125 -to DRAM_DQ[5]
+set_location_assignment PIN_121 -to DRAM_DQ[6]
+set_location_assignment PIN_120 -to DRAM_DQ[7]
+set_location_assignment PIN_60 -to DRAM_DQ[8]
+set_location_assignment PIN_59 -to DRAM_DQ[9]
+set_location_assignment PIN_58 -to DRAM_DQ[10]
+set_location_assignment PIN_46 -to DRAM_DQ[11]
+set_location_assignment PIN_44 -to DRAM_DQ[12]
+set_location_assignment PIN_31 -to DRAM_DQ[13]
+set_location_assignment PIN_42 -to DRAM_DQ[14]
+set_location_assignment PIN_30 -to DRAM_DQ[15]
+set_location_assignment PIN_110 -to SD_CLK
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name CYCLONEIII_CONFIGURATION_DEVICE EPCS16
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED"
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name DEVICE_FILTER_PACKAGE TQFP
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 144
+set_location_assignment PIN_6 -to ASDO
+set_location_assignment PIN_13 -to DATA0
+set_location_assignment PIN_12 -to DCLK
+set_location_assignment PIN_8 -to NCSO
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_instance_assignment -name IO_MAXIMUM_TOGGLE_RATE "0 MHz" -to DCLK
+set_location_assignment PIN_32 -to USB_NRESET
+set_location_assignment PIN_53 -to USB_TX
+set_location_assignment PIN_114 -to SD_NCS
+set_location_assignment PIN_111 -to SD_SI
+set_location_assignment PIN_126 -to SD_SO
+set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
+set_global_assignment -name TIMEQUEST_REPORT_SCRIPT_INCLUDE_DEFAULT_ANALYSIS OFF
+set_location_assignment PIN_68 -to DN
+set_location_assignment PIN_69 -to DP
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 8
+set_location_assignment PIN_10 -to HDMI[7]
+set_location_assignment PIN_11 -to HDMI[6]
+set_location_assignment PIN_144 -to HDMI[5]
+set_location_assignment PIN_143 -to HDMI[4]
+set_location_assignment PIN_133 -to HDMI[3]
+set_location_assignment PIN_132 -to HDMI[2]
+set_location_assignment PIN_113 -to HDMI[1]
+set_location_assignment PIN_112 -to HDMI[0]
+set_global_assignment -name ENABLE_OCT_DONE OFF
+set_location_assignment PIN_55 -to USB_IO1
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/atari800core.vhd
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/u16_atari800.vhd"
+set_global_assignment -name VERILOG_FILE "../rtl/reverse-u16/hdmi/hdmidataencoder.v"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/hdmi/hdmi.vhd"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/hdmi/encoder.vhd"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/hdmi/altddio_out1.vhd"
+set_global_assignment -name QIP_FILE "../rtl/reverse-u16/pll/pal_pll.qip"
+set_global_assignment -name QIP_FILE "../rtl/reverse-u16/pll/ntsc_pll.qip"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/hdmi/scandoubler_hdmi.vhdl"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/hdmi/scandouble_ram_infer_9.vhdl"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/vnc2/vnc2hid.vhd"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/dac/dac.vhd"
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/zpu_rom.vhdl"
+set_global_assignment -name VHDL_FILE ../rtl/common/zpu/zpupkg.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/zpu/zpucore.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/zpu/zpu_glue.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/zpu/zpu_core.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/zpu/zpu_config_regs.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/syncreset_enable_divider.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/components/synchronizer.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/spi_master.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/components/sdram_statemachine.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/scandoubler.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/scandouble_ram_infer.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/ps2_keyboard.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/mult_infer.vhdl
+set_global_assignment -name VERILOG_FILE ../rtl/common/components/hq_dac.v
+set_global_assignment -name VHDL_FILE ../rtl/common/components/generic_ram_infer.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/delay_line.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/components/complete_address_decoder.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/wide_delay_line.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/timing6502.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/sio_device.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/simple_counter.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/shared_enable.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/reg_file.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/ps2_to_atari5200.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/ps2_to_atari800.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pot_from_signed.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_poly_17_9.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_poly_5.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_poly_4.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_noise_filter.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_mixer_mux.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_mixer.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_keyboard_scanner.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey_countdown_timer.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pokey.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/pia.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/os16_loop.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/os16.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/os8.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/os2.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/os_5200.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/irq_glue.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/internalromram.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/gtia_priority.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/gtia_player.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/gtia_palette.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/gtia.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/freezer_logic.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/enable_divider.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/cpu_6510.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/cpu_65xx_e.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/cpu_65xx_a.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/cpu.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/covox.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/cart_logic.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/basic.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/atari5200core.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/atari800core_simple_sdram.vhd
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/antic_dma_clock.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/antic_counter.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/antic.vhdl
+set_global_assignment -name VHDL_FILE ../rtl/common/a8core/address_decoder.vhdl
+set_global_assignment -name VHDL_FILE "../rtl/reverse-u16/vnc2/receiver.vhd"
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

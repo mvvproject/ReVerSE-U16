@@ -1,0 +1,82 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       15/04/21 23:37:11
+Executable Image: zetbios.rom
+creating a DOS executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          f000:0000            00003784
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+_DATA                  DATA           DGROUP         f000:0000       000003b6
+_TEXT                  CODE           DGROUP         f000:1000       00002784
+_BIOSSEG               CODE           AUTO           f000:e000       00002000
+CONST                  DATA           DGROUP         f03b:0006       00000649
+CONST2                 DATA           DGROUP         f0a0:0000       00000000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: zetbios_vers.obj(D:\Proj_my\ZET BASE\U16\2015_04_21a U16_ZET (USB KeyB)\_ZET_BOOT\src\Ver_1_2_0\bios\zetbios_vers.c)
+f000:14c2      _print_bios_banner
+f000:14fc      _init_boot_vectors
+f000:1734      _int16_function
+f000:1a52      _int09_function
+f000:1ee0      _int13_harddisk
+f000:1fc8      _MakeRamdisk
+f000:251c      _int13_diskette_function
+f000:2b6e      _int14_function
+f000:2d38      _int15_function
+f000:2df6      _int15_function_mouse
+f000:34a2      _int19_function
+f000:35b8      _boot_halt
+f000:35c8      _int1a_function
+Module: C:\WATCOM/lib286/dos\clibs.lib(i4d)
+f000:369e*     __I4D
+f000:36e7      __U4D
+Module: C:\WATCOM/lib286/dos\clibs.lib(i4m)
+f000:376c*     __I4M
+f000:376c      __U4M
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
+f000:3784      _small_code_
+f000:3784*     CodeModelMismatch
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\WATCOM/lib286/dos\clibs.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  1000 (4096.)
+Memory size:  5190 (20880.)
+Entry point address: f000:e000
+Link time: 00:00.00

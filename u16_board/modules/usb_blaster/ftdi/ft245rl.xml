@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<FT_EEPROM>
+  <Chip_Details>
+    <Type>FT245R</Type>
+  </Chip_Details>
+  <USB_Device_Descriptor>
+    <VID_PID>2</VID_PID>
+    <idVendor>09FB</idVendor>
+    <idProduct>6001</idProduct>
+    <bcdUSB>USB 2.0</bcdUSB>
+  </USB_Device_Descriptor>
+  <USB_Config_Descriptor>
+    <bmAttributes>
+      <RemoteWakeupEnabled>false</RemoteWakeupEnabled>
+      <SelfPowered>false</SelfPowered>
+      <BusPowered>true</BusPowered>
+    </bmAttributes>
+    <IOpullDown>false</IOpullDown>
+    <MaxPower>90</MaxPower>
+  </USB_Config_Descriptor>
+  <USB_String_Descriptors>
+    <Manufacturer>Altera</Manufacturer>
+    <Product_Description>USB-Blaster</Product_Description>
+    <SerialNumber_Enabled>true</SerialNumber_Enabled>
+    <SerialNumber>
+    </SerialNumber>
+    <SerialNumberPrefix>
+    </SerialNumberPrefix>
+  </USB_String_Descriptors>
+  <Hardware_Specific>
+    <HighIO>false</HighIO>
+    <D2XXDriver>false</D2XXDriver>
+    <ExternalOscillator>false</ExternalOscillator>
+  </Hardware_Specific>
+</FT_EEPROM>

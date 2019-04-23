@@ -1,0 +1,132 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2014 Altera Corporation. All rights reserved.
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, the Altera Quartus II License Agreement,
+# the Altera MegaCore Function License Agreement, or other 
+# applicable license agreement, including, without limitation, 
+# that your use is for the sole purpose of programming logic 
+# devices manufactured by Altera and sold by Altera or its 
+# authorized distributors.  Please refer to the applicable 
+# agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II 64-Bit
+# Version 14.0.0 Build 200 06/17/2014 SJ Full Version
+# Date created = 23:14:12  November 25, 2014
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		socz80_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE22E22C7
+set_global_assignment -name TOP_LEVEL_ENTITY top_level
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 14.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "23:14:12  NOVEMBER 25, 2014"
+set_global_assignment -name LAST_QUARTUS_VERSION "13.0 SP1.DP6"
+set_global_assignment -name VHDL_FILE vhdl/Z80cpu.vhd
+set_global_assignment -name VHDL_FILE vhdl/uart_interface.vhd
+set_global_assignment -name VHDL_FILE vhdl/uart.vhd
+set_global_assignment -name VHDL_FILE vhdl/top_level.vhd
+set_global_assignment -name VHDL_FILE vhdl/timer.vhd
+set_global_assignment -name VHDL_FILE vhdl/T80se.vhd
+set_global_assignment -name VHDL_FILE vhdl/T80_Reg.vhd
+set_global_assignment -name VHDL_FILE vhdl/T80_Pack.vhd
+set_global_assignment -name VHDL_FILE vhdl/T80_MCode.vhd
+set_global_assignment -name VHDL_FILE vhdl/T80_ALU.vhd
+set_global_assignment -name VHDL_FILE vhdl/T80.vhd
+set_global_assignment -name VHDL_FILE vhdl/SSRAM.vhd
+set_global_assignment -name VHDL_FILE vhdl/SDRAM_Controller.vhd
+set_global_assignment -name VHDL_FILE vhdl/pll.vhd
+set_global_assignment -name VHDL_FILE vhdl/MonZ80.vhd
+set_global_assignment -name VHDL_FILE vhdl/MMU.vhd
+set_global_assignment -name VHDL_FILE vhdl/gpio.vhd
+set_global_assignment -name VHDL_FILE vhdl/fifo.vhd
+set_global_assignment -name VHDL_FILE vhdl/DRAM.vhd
+set_global_assignment -name VHDL_FILE vhdl/clkscale.vhd
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name DEVICE_FILTER_PACKAGE TQFP
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 144
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 7
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (VHDL)"
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT VHDL -section_id eda_simulation
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
+set_location_assignment PIN_72 -to serial_rx
+set_location_assignment PIN_71 -to serial_tx
+set_location_assignment PIN_25 -to sys_clk_pad_i
+set_location_assignment PIN_32 -to reset_button
+set_location_assignment PIN_98 -to SDRAM_ADDR[0]
+set_location_assignment PIN_86 -to SDRAM_ADDR[1]
+set_location_assignment PIN_87 -to SDRAM_ADDR[2]
+set_location_assignment PIN_105 -to SDRAM_ADDR[3]
+set_location_assignment PIN_76 -to SDRAM_ADDR[4]
+set_location_assignment PIN_77 -to SDRAM_ADDR[5]
+set_location_assignment PIN_80 -to SDRAM_ADDR[6]
+set_location_assignment PIN_83 -to SDRAM_ADDR[7]
+set_location_assignment PIN_85 -to SDRAM_ADDR[8]
+set_location_assignment PIN_67 -to SDRAM_ADDR[9]
+set_location_assignment PIN_99 -to SDRAM_ADDR[10]
+set_location_assignment PIN_69 -to SDRAM_ADDR[11]
+set_location_assignment PIN_68 -to SDRAM_ADDR[12]
+set_location_assignment PIN_101 -to SDRAM_BA[0]
+set_location_assignment PIN_100 -to SDRAM_BA[1]
+set_location_assignment PIN_43 -to SDRAM_CLK
+set_location_assignment PIN_119 -to SDRAM_DQM[0]
+set_location_assignment PIN_66 -to SDRAM_DQM[1]
+set_location_assignment PIN_142 -to SDRAM_DQ[0]
+set_location_assignment PIN_141 -to SDRAM_DQ[1]
+set_location_assignment PIN_137 -to SDRAM_DQ[2]
+set_location_assignment PIN_136 -to SDRAM_DQ[3]
+set_location_assignment PIN_135 -to SDRAM_DQ[4]
+set_location_assignment PIN_125 -to SDRAM_DQ[5]
+set_location_assignment PIN_121 -to SDRAM_DQ[6]
+set_location_assignment PIN_120 -to SDRAM_DQ[7]
+set_location_assignment PIN_65 -to SDRAM_DQ[8]
+set_location_assignment PIN_64 -to SDRAM_DQ[9]
+set_location_assignment PIN_60 -to SDRAM_DQ[10]
+set_location_assignment PIN_46 -to SDRAM_DQ[11]
+set_location_assignment PIN_44 -to SDRAM_DQ[12]
+set_location_assignment PIN_59 -to SDRAM_DQ[13]
+set_location_assignment PIN_42 -to SDRAM_DQ[14]
+set_location_assignment PIN_58 -to SDRAM_DQ[15]
+set_location_assignment PIN_106 -to SDRAM_nCAS
+set_location_assignment PIN_103 -to SDRAM_nRAS
+set_location_assignment PIN_104 -to SDRAM_nWE
+set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name CDF_FILE output_files/Chain1.cdf
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

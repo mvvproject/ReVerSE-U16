@@ -1,0 +1,35 @@
+BLOCK		START ADDRESS		END ADDRESS
+
+Page_0		0x00000000		0x000AF6E8
+Super_Mario_Bros._(E).hex		0x000AF6E9		0x000B96F8
+Gradius.hex		0x000B96F9		0x000C9708
+Tank1990.hex		0x000C9709		0x000D3718
+Chip_'n_Dale_Rescue_Rangers_(U)_[!].hex		0x000D3719		0x00113728
+Contra_(U)_[!].hex		0x00113729		0x00133738
+Lode_Runner_(U).hex		0x00133739		0x00139748
+Darkwing_Duck_(U).hex		0x00139749		0x00179758
+Castlevania_III.hex		0x00179759		0x001D9768
+Teenage_Mutant_Ninja_Turtles_III_-_The_Manhattan_Project_(U).hex		0x001D9769		0x00259778
+Tiny_Toon_Adventures_(U).hex		0x00259779		0x00299788
+battletoads.hex		0x00299789		0x002D9798
+Prince_of_Persia_(U).hex		0x002D9799		0x002F97A8
+1943.hex		0x002F97A9		0x003197B8
+kirbysadventure.hex		0x003197B9		0x003D97C8
+Aladdin (Unl).hex		0x003D97C9		0x00459768
+Battletoads_DD.hex		0x00459769		0x00499778
+Super C (U).hex		0x00499779		0x004D9788
+ferrari---grand-prix-challenge-(u)-[!].hex		0x004D9789		0x00519798
+lifeforce-(e)-[!].hex		0x00519799		0x005397A8
+road-fighter-(e)-[!].hex		0x005397A9		0x0053F7B8
+RoboCop_2.hex		0x0053F7B9		0x0057F848
+smb3.hex		0x0057F849		0x005DF858
+snow-bros-(u).hex		0x005DF859		0x0061F868
+tetris-2.hex		0x0061F869		0x0062B878
+
+
+
+Notes:
+
+- Data checksum for this conversion is 0x41641288
+
+- All the addresses in this file are byte addresses

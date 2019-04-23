@@ -1,0 +1,52 @@
+
+# File extension in Windows
+O = .obj
+E = .exe
+
+# Current directory (for executing programs)
+CDIR = .\
+
+all: zetbios.dat
+
+CF_DBG = -0 -wx -zu -s -ecc -ms -d3 -od -q
+CF_REL = -0 -wx -zu -s -ecc -ms -d0 -ot -q
+CFLAGS = $(CF_REL)
+
+AF_DBG = -0 -d1 -w3 -q
+AF_REL = -0 -w3 -q
+AFLAGS = $(AF_REL)
+
+
+zetbios.dat: zetbios_vers.c zetbios.rom
+
+
+zetbios_vers.c:
+	copy zetbios.c zetbios_vers.c
+
+zetbios.rom: zetbios_vers$(O) entry$(O)
+	wlink name $@ system dos &
+        OPTION quiet &
+        OPTION NOFARCALLS &
+        OPTION FILLCHAR=0xFF &
+        OPTION NOFARCALLS , MAP  &
+        OUTPUT raw offset=0xF0000  &
+        ORDER &
+        clname DATA segment _DATA    segaddr=0xF000 offset=0x9000 &
+        clname CODE segment _TEXT    segaddr=0xF000 offset=0xA000 &
+                    segment _BIOSSEG segaddr=0xF000 offset=0xE000 &
+        FILE { zetbios_vers$(O) entry$(O) } &
+        LIBRARY clibs.lib &
+        disable 1014
+
+zetbios_vers$(O): zetbios_vers.c .autodepend
+	wcc $(CFLAGS) zetbios_vers.c
+
+entry$(O): .autodepend
+	wasm $(AFLAGS) entry.asm
+
+
+clean:
+	del  *.lst *.dat *.hex *.o *.obj *.sym *.rom *.err *.map *.flash zetbios_vers.c vga_vers.asm ff biossums vgasums mifer hexer
+ 
+
+

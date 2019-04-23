@@ -1,0 +1,19 @@
+!define BLANK ""
+"D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\Tools\mifer_32k.obj" : "&
+D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\Tools\mifer_32k.c" .AUTOD&
+EPEND
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\Tools
+ *wcc386 mifer_32k.c -i="C:\WATCOM/h" -w4 -e25 -zq -od -d2 -6r -bt=dos -fo=.&
+obj -mf
+
+"D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\Tools\MIFER.exe" : "D:\P&
+roj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\Tools\mifer_32k.obj" .AUTODEP&
+END
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\Tools
+ @%write MIFER.lk1 FIL mifer_32k.obj
+ @%append MIFER.lk1 
+ *wlink name MIFER d all sys causeway op m op maxe=25 op q op symf @MIFER.lk&
+1
+

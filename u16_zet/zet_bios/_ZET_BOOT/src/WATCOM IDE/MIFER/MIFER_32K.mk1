@@ -1,0 +1,21 @@
+!define BLANK ""
+"D:\Proj_my\ZET BASE\U16\2015_04_22 U16_ZET\_ZET_BOOT\src\WATCOM IDE\MIFER\m&
+ifer_32k.obj" : "D:\Proj_my\ZET BASE\U16\2015_04_22 U16_ZET\_ZET_BOOT\src\WA&
+TCOM IDE\MIFER\mifer_32k.c" .AUTODEPEND
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_22 U16_ZET\_ZET_BOOT\src\WATCOM IDE\MIFE&
+R
+ *wcc386 mifer_32k.c -i="C:\WATCOM/h" -w4 -e25 -zq -od -d2 -6r -bt=dos -fo=.&
+obj -mf
+
+"D:\Proj_my\ZET BASE\U16\2015_04_22 U16_ZET\_ZET_BOOT\src\WATCOM IDE\MIFER\M&
+IFER_32K.exe" : "D:\Proj_my\ZET BASE\U16\2015_04_22 U16_ZET\_ZET_BOOT\src\WA&
+TCOM IDE\MIFER\mifer_32k.obj" .AUTODEPEND
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_22 U16_ZET\_ZET_BOOT\src\WATCOM IDE\MIFE&
+R
+ @%write MIFER_32K.lk1 FIL mifer_32k.obj
+ @%append MIFER_32K.lk1 
+ *wlink name MIFER_32K d all sys causeway op m op maxe=25 op q op symf @MIFE&
+R_32K.lk1
+

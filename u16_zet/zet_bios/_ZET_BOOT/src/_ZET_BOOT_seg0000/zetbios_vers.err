@@ -1,0 +1,11 @@
+zetbios_vers.c(178): Warning! W202: Symbol 'ticks' has been defined, but not referenced
+zetbios_vers.c(489): Warning! W131: No prototype found for function 'PUSH_STACK'
+zetbios_vers.c(490): Warning! W131: No prototype found for function 'JUMP_C'
+zetbios_vers.c(407): Warning! W202: Symbol 'readback' has been defined, but not referenced
+zetbios_vers.c(408): Warning! W202: Symbol 'error' has been defined, but not referenced
+zetbios_vers.c(531): Warning! W202: Symbol 'current' has been defined, but not referenced
+zetbios_vers.c(532): Warning! W202: Symbol 'crtc_addr' has been defined, but not referenced
+zetbios_vers.c(577): Warning! W202: Symbol 'line' has been defined, but not referenced
+zetbios.h(212): Warning! W202: Symbol 'scan_to_scanascii' has been defined, but not referenced
+zetbios_vers.c(551): Warning! W202: Symbol 'biosfn_get_cursor_pos' has been defined, but not referenced
+zetbios_vers.c(563): Warning! W202: Symbol 'find_vga_entry' has been defined, but not referenced

@@ -1,0 +1,2295 @@
+Module: D:\333_ZET_BOOT\zetbios.c
+GROUP: 'DGROUP' CONST,CONST2,_DATA
+
+Segment: _TEXT BYTE USE16 000008BE bytes
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//  ZET Bios C Helper functions:
+//  This file contains various functions in C called fromt the zetbios.asm
+//  module. This module provides support fuctions and special code specific
+//  to the Zet computer, specifically, special video support and disk support
+//  for the SD and Flash types of disks. 
+//
+//  This code is compatible with the Open Watcom C Compiler.
+//  Originally modified from the Bochs bios by Zeus Gomez Marmolejo
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
+#include "zetbios.h"
+////////////////////////////////////////////////////////////////////////////////////////////////
+#define BIOSMEM_SEG                        0xF000
+#define BIOSMEM_CURSOR_POS     0xFF90  //0xe402
+#define BIOSMEM_CURSOR_TYPE    0xFF92 //0xe404
+
+#define SCROLL_DOWN    0
+#define SCROLL_UP           1
+#define NO_ATTR                 2
+#define WITH_ATTR             3
+        
+//////////////////////////////////////
+#define MODE_MAX   15
+#define TEXT       0x00
+#define GRAPH      0x01
+
+#define CTEXT      0x00
+#define MTEXT      0x01
+#define CGA        0x02
+#define PLANAR1    0x03
+#define PLANAR4    0x04
+#define LINEAR8    0x05
+
+// for SVGA
+#define LINEAR15   0x10
+#define LINEAR16   0x11
+#define LINEAR24   0x12
+#define LINEAR32   0x13
+
+
+typedef struct
+{
+    Bit8u  svgamode;
+    Bit8u  class;             // TEXT, GRAPH 
+    Bit8u  memmodel;   //CTEXT,MTEXT,CGA,PL1,PL2,PL4,P8,P15,P16,P24,P32 
+    Bit8u  pixbits;
+    Bit16u sstart;
+    Bit8u  pelmask;
+    Bit8u  dacmodel;    // 0 1 2 3 
+} VGAMODES;
+
+static VGAMODES vga_modes[MODE_MAX+1] =
+{
+    //mode  class  model bits sstart  pelm  dac
+    {0x00, TEXT,  CTEXT,   4, 0xB800, 0xFF, 0x02},
+    {0x01, TEXT,  CTEXT,   4, 0xB800, 0xFF, 0x02},
+    {0x02, TEXT,  CTEXT,   4, 0xB800, 0xFF, 0x02},
+    {0x03, TEXT,  CTEXT,   4, 0xB800, 0xFF, 0x02},
+    {0x04, GRAPH, CGA,     2, 0xB800, 0xFF, 0x01},
+    {0x05, GRAPH, CGA,     2, 0xB800, 0xFF, 0x01},
+    {0x06, GRAPH, CGA,     1, 0xB800, 0xFF, 0x01},
+    {0x07, TEXT,  MTEXT,   4, 0xB000, 0xFF, 0x00},
+    {0x0D, GRAPH, PLANAR4, 4, 0xA000, 0xFF, 0x01},
+    {0x0E, GRAPH, PLANAR4, 4, 0xA000, 0xFF, 0x01},
+    {0x0F, GRAPH, PLANAR1, 1, 0xA000, 0xFF, 0x00},
+    {0x10, GRAPH, PLANAR4, 4, 0xA000, 0xFF, 0x02},
+    {0x11, GRAPH, PLANAR1, 1, 0xA000, 0xFF, 0x02},
+    {0x12, GRAPH, PLANAR4, 4, 0xA000, 0xFF, 0x02},
+    {0x13, GRAPH, LINEAR8, 8, 0xA000, 0xFF, 0x03},
+    {0x6A, GRAPH, PLANAR4, 4, 0xA000, 0xFF, 0x02}
+};
+
+//static void     biosfn_write_teletype(Bit8u car, Bit8u page, Bit8u attr, Bit8u flag);
+static void     biosfn_prnt_char(Bit8u car);
+static void     biosfn_set_cursor_pos(Bit8u page, Bit16u cursor);
+static void     biosfn_get_cursor_pos(Bit8u page, Bit16u *shape, Bit16u *pos);
+static Bit8u    find_vga_entry(Bit8u mode);
+static void    wrchar(Bit8u character);
+static void mem_test (Bit16u tested_segment, Bit16u start, Bit16u end, Bit8u pattern, Bit8u inc);
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------
+// Low level assembly functions
+//--------------------------------------------------------------------------
+#pragma aux LED =         \
+"       mov  dx, 0f102h      " \
+"       out    dx, ax              " \
+parm [ax] ;
+
+#pragma aux get_CS = "mov ax, cs" modify [ax];
+#pragma aux get_SS = "mov ax, ss" modify [ax];
+
+#pragma aux read_byte = \
+"       push ds          " \
+"       mov  ds, ax      " \
+"       mov  al, ds:[bx] " \
+"       pop  ds          " \
+parm [ax] [bx] modify [al];
+
+#pragma aux read_word = \
+"       push ds          " \
+"       mov  ds, ax      " \
+"       mov  ax, ds:[bx] " \
+"       pop  ds          " \
+parm [ax] [bx] modify [ax];
+
+#pragma aux write_byte = \
+"       push ds          " \
+"       mov  ds, ax      " \
+"       mov  ds:[bx], dl " \
+"       pop  ds          " \
+parm [ax] [bx] [dl];
+
+#pragma aux write_word = \
+"       push ds          " \
+"       mov  ds, ax      " \
+"       mov  ds:[bx], dx " \
+"       pop  ds          " \
+parm [ax] [bx] [dx];
+
+#pragma aux inb  = "in  al, dx" parm [dx] modify [al];
+#pragma aux outb = "out dx, al" parm [dx] [al];
+#pragma aux inw  = "in  ax, dx" parm [dx] modify [ax];
+#pragma aux outw = "out dx, ax" parm [dx] [ax];
+
+#pragma aux memsetb = \
+"       push es          " \
+"       mov  es, bx      " \
+"       cld              " \
+"       rep  stosb       " \
+"       pop  es          " \
+parm [bx] [di] [al] [cx] modify [di cx];
+
+#pragma aux memcpyb = \
+"       push ds          " \
+"       push es          " \
+"       mov  ds, ax      " \
+"       mov  es, bx      " \
+"       cld              " \
+"       rep  movsb       " \
+"       pop  es          " \
+"       pop  ds          " \
+parm [bx] [di] [ax] [si] [cx] modify [di si cx];
+
+#pragma aux wrch = \
+"       xor  bx, bx      " \
+"       mov  ah, 0x0e    " \
+"       int  0x10        " \
+parm [al] modify [ah bx];
+
+#pragma aux wrchar = \
+"       xor  bx, bx      " \
+"       mov  ah, 0x0e    " \
+parm [al] modify [ah bx];
+
+//--------------------------------------------------------------------------
+static void wcomport(Bit8u c)
+0000                          _wcomport:
+0000    56                        push        si 
+0001    57                        push        di 
+0002    55                        push        bp 
+0003    89 E5                     mov         bp,sp 
+0005    81 EC 04 00               sub         sp,0x0004 
+
+{
+    Bit8u  ticks;
+    ticks = read_byte(0x0040, 0x006C); // get current tick count
+0009                          L$1:
+0009    BB 6C 00                  mov         bx,0x006c 
+000C    B8 40 00                  mov         ax,0x0040 
+000F    1E                        push        ds 
+0010    8E D8                     mov         ds,ax 
+0012    8A 07                     mov         al,byte ptr [bx] 
+0014    1F                        pop         ds 
+0015    88 46 FE                  mov         byte ptr -0x2[bp],al 
+
+
+    while(!inb(UART_LS & 0x40)) {     // wait for transmitter buffer to empty
+0018                          L$2:
+0018    BA 40 00                  mov         dx,0x0040 
+001B    EC                        in          al,dx 
+001C    84 C0                     test        al,al 
+001E    75 20                     jne         L$5 
+
+        if((ticks + 50) < read_byte(0x0040, 0x006C)) break;
+0020                          L$3:
+0020    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0023    30 E4                     xor         ah,ah 
+0025    89 C2                     mov         dx,ax 
+0027    BB 6C 00                  mov         bx,0x006c 
+002A    B8 40 00                  mov         ax,0x0040 
+002D    1E                        push        ds 
+002E    8E D8                     mov         ds,ax 
+0030    8A 07                     mov         al,byte ptr [bx] 
+0032    1F                        pop         ds 
+0033    30 E4                     xor         ah,ah 
+0035    83 C2 32                  add         dx,0x0032 
+0038    39 C2                     cmp         dx,ax 
+003A    7D 02                     jge         L$4 
+003C    EB 02                     jmp         L$5 
+
+    }
+003E                          L$4:
+003E    EB D8                     jmp         L$2 
+
+    while((ticks + 70) < read_byte(0x0040, 0x006C));
+0040                          L$5:
+0040    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0043    30 E4                     xor         ah,ah 
+0045    89 C2                     mov         dx,ax 
+0047    BB 6C 00                  mov         bx,0x006c 
+004A    B8 40 00                  mov         ax,0x0040 
+004D    1E                        push        ds 
+004E    8E D8                     mov         ds,ax 
+0050    8A 07                     mov         al,byte ptr [bx] 
+0052    1F                        pop         ds 
+0053    30 E4                     xor         ah,ah 
+0055    83 C2 46                  add         dx,0x0046 
+0058    39 C2                     cmp         dx,ax 
+005A    7D 02                     jge         L$6 
+005C    EB E2                     jmp         L$5 
+
+    outb(UART,c);
+005E                          L$6:
+005E    8A 46 08                  mov         al,byte ptr 0x8[bp] 
+0061    BA F8 03                  mov         dx,0x03f8 
+0064    EE                        out         dx,al 
+
+}
+0065                          L$7:
+0065    C9                        leave       
+0066    5F                        pop         di 
+0067    5E                        pop         si 
+0068    C3                        ret         
+
+//--------------------------------------------------------------------------
+static void send(Bit16u action, Bit8u  c) //////////////////////// 2013.06.16
+0069                          _send:
+0069    56                        push        si 
+006A    57                        push        di 
+006B    55                        push        bp 
+006C    89 E5                     mov         bp,sp 
+006E    81 EC 02 00               sub         sp,0x0002 
+
+{
+    if(action & BIOS_PRINTF_SCREEN) {
+0072                          L$8:
+0072    F7 46 08 02 00            test        word ptr 0x8[bp],0x0002 
+0077    74 0C                     je          L$10 
+
+        // if(c == '\n') biosfn_prnt_char('\r');
+        biosfn_prnt_char(c);
+0079                          L$9:
+0079    8A 46 0A                  mov         al,byte ptr 0xa[bp] 
+007C    30 E4                     xor         ah,ah 
+007E    50                        push        ax 
+007F    E8 00 00                  call        _biosfn_prnt_char 
+0082    83 C4 02                  add         sp,0x0002 
+
+    }
+    if(action & BIOS_PRINTF_COMPORT)  wcomport(c);
+0085                          L$10:
+0085    F7 46 08 08 00            test        word ptr 0x8[bp],0x0008 
+008A    74 0C                     je          L$11 
+008C    8A 46 0A                  mov         al,byte ptr 0xa[bp] 
+008F    30 E4                     xor         ah,ah 
+0091    50                        push        ax 
+0092    E8 00 00                  call        _wcomport 
+0095    83 C4 02                  add         sp,0x0002 
+
+}
+0098                          L$11:
+0098    C9                        leave       
+0099    5F                        pop         di 
+009A    5E                        pop         si 
+009B    C3                        ret         
+
+//--------------------------------------------------------------------------
+static void put_int(Bit16u action, short val, short width, bx_bool neg)
+009C                          _put_int:
+009C    56                        push        si 
+009D    57                        push        di 
+009E    55                        push        bp 
+009F    89 E5                     mov         bp,sp 
+00A1    81 EC 04 00               sub         sp,0x0004 
+
+{
+    short nval = val / 10;
+00A5                          L$12:
+00A5    BB 0A 00                  mov         bx,0x000a 
+00A8    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+00AB    99                        cwd         
+00AC    F7 FB                     idiv        bx 
+00AE    89 46 FE                  mov         word ptr -0x2[bp],ax 
+
+    if(nval) put_int(action, nval, width - 1, neg);
+00B1    83 7E FE 00               cmp         word ptr -0x2[bp],0x0000 
+00B5    74 19                     je          L$13 
+00B7    8B 46 0E                  mov         ax,word ptr 0xe[bp] 
+00BA    50                        push        ax 
+00BB    8B 46 0C                  mov         ax,word ptr 0xc[bp] 
+00BE    48                        dec         ax 
+00BF    50                        push        ax 
+00C0    8B 46 FE                  mov         ax,word ptr -0x2[bp] 
+00C3    50                        push        ax 
+00C4    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+00C7    50                        push        ax 
+00C8    E8 00 00                  call        _put_int 
+00CB    83 C4 08                  add         sp,0x0008 
+
+    else {
+00CE    EB 2E                     jmp         L$15 
+
+        while(--width > 0) send(action, ' ');
+00D0                          L$13:
+00D0    83 46 0C FF               add         word ptr 0xc[bp],0xffff 
+00D4    83 7E 0C 00               cmp         word ptr 0xc[bp],0x0000 
+00D8    7E 10                     jle         L$14 
+00DA    B8 20 00                  mov         ax,0x0020 
+00DD    50                        push        ax 
+00DE    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+00E1    50                        push        ax 
+00E2    E8 00 00                  call        _send 
+00E5    83 C4 04                  add         sp,0x0004 
+00E8    EB E6                     jmp         L$13 
+
+        if(neg) send(action, '-');
+00EA                          L$14:
+00EA    83 7E 0E 00               cmp         word ptr 0xe[bp],0x0000 
+00EE    74 0E                     je          L$15 
+00F0    B8 2D 00                  mov         ax,0x002d 
+00F3    50                        push        ax 
+00F4    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+00F7    50                        push        ax 
+00F8    E8 00 00                  call        _send 
+00FB    83 C4 04                  add         sp,0x0004 
+
+    }
+    send(action, val - (nval * 10) + '0');
+00FE                          L$15:
+00FE    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0101    B4 0A                     mov         ah,0x0a 
+0103    F6 E4                     mul         ah 
+0105    8A 66 0A                  mov         ah,byte ptr 0xa[bp] 
+0108    28 C4                     sub         ah,al 
+010A    88 E0                     mov         al,ah 
+010C    04 30                     add         al,0x30 
+010E    30 E4                     xor         ah,ah 
+0110    50                        push        ax 
+0111    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0114    50                        push        ax 
+0115    E8 00 00                  call        _send 
+0118    83 C4 04                  add         sp,0x0004 
+
+}
+011B                          L$16:
+011B    C9                        leave       
+011C    5F                        pop         di 
+011D    5E                        pop         si 
+011E    C3                        ret         
+
+//--------------------------------------------------------------------------
+static void put_uint(Bit16u action, unsigned short val, short width, bx_bool neg)
+011F                          _put_uint:
+011F    56                        push        si 
+0120    57                        push        di 
+0121    55                        push        bp 
+0122    89 E5                     mov         bp,sp 
+0124    81 EC 04 00               sub         sp,0x0004 
+
+{
+    unsigned short nval = val / 10;
+0128                          L$17:
+0128    B9 0A 00                  mov         cx,0x000a 
+012B    8B 5E 0A                  mov         bx,word ptr 0xa[bp] 
+012E    31 D2                     xor         dx,dx 
+0130    89 D8                     mov         ax,bx 
+0132    F7 F1                     div         cx 
+0134    89 46 FE                  mov         word ptr -0x2[bp],ax 
+
+    if(nval) put_uint(action, nval, width - 1, neg);
+0137    83 7E FE 00               cmp         word ptr -0x2[bp],0x0000 
+013B    74 19                     je          L$18 
+013D    8B 46 0E                  mov         ax,word ptr 0xe[bp] 
+0140    50                        push        ax 
+0141    8B 46 0C                  mov         ax,word ptr 0xc[bp] 
+0144    48                        dec         ax 
+0145    50                        push        ax 
+0146    8B 46 FE                  mov         ax,word ptr -0x2[bp] 
+0149    50                        push        ax 
+014A    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+014D    50                        push        ax 
+014E    E8 00 00                  call        _put_uint 
+0151    83 C4 08                  add         sp,0x0008 
+
+    else {
+0154    EB 2E                     jmp         L$20 
+
+        while(--width > 0) send(action, ' ');
+0156                          L$18:
+0156    83 46 0C FF               add         word ptr 0xc[bp],0xffff 
+015A    83 7E 0C 00               cmp         word ptr 0xc[bp],0x0000 
+015E    7E 10                     jle         L$19 
+0160    B8 20 00                  mov         ax,0x0020 
+0163    50                        push        ax 
+0164    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0167    50                        push        ax 
+0168    E8 00 00                  call        _send 
+016B    83 C4 04                  add         sp,0x0004 
+016E    EB E6                     jmp         L$18 
+
+        if(neg) send(action, '-');
+0170                          L$19:
+0170    83 7E 0E 00               cmp         word ptr 0xe[bp],0x0000 
+0174    74 0E                     je          L$20 
+0176    B8 2D 00                  mov         ax,0x002d 
+0179    50                        push        ax 
+017A    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+017D    50                        push        ax 
+017E    E8 00 00                  call        _send 
+0181    83 C4 04                  add         sp,0x0004 
+
+    }
+    send(action, val - (nval * 10) + '0');
+0184                          L$20:
+0184    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0187    B4 0A                     mov         ah,0x0a 
+0189    F6 E4                     mul         ah 
+018B    8A 66 0A                  mov         ah,byte ptr 0xa[bp] 
+018E    28 C4                     sub         ah,al 
+0190    88 E0                     mov         al,ah 
+0192    04 30                     add         al,0x30 
+0194    30 E4                     xor         ah,ah 
+0196    50                        push        ax 
+0197    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+019A    50                        push        ax 
+019B    E8 00 00                  call        _send 
+019E    83 C4 04                  add         sp,0x0004 
+
+}
+01A1                          L$21:
+01A1    C9                        leave       
+01A2    5F                        pop         di 
+01A3    5E                        pop         si 
+01A4    C3                        ret         
+
+//--------------------------------------------------------------------------
+static void put_luint(Bit16u action, unsigned long val, short width, bx_bool neg)
+01A5                          _put_luint:
+01A5    56                        push        si 
+01A6    57                        push        di 
+01A7    55                        push        bp 
+01A8    89 E5                     mov         bp,sp 
+01AA    81 EC 06 00               sub         sp,0x0006 
+
+{
+    unsigned long nval = val / 10;
+01AE                          L$22:
+01AE    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+01B1    8B 56 0C                  mov         dx,word ptr 0xc[bp] 
+01B4    BB 0A 00                  mov         bx,0x000a 
+01B7    31 C9                     xor         cx,cx 
+01B9    E8 00 00                  call        __U4D 
+01BC    89 46 FA                  mov         word ptr -0x6[bp],ax 
+01BF    89 56 FC                  mov         word ptr -0x4[bp],dx 
+
+    if(nval) put_luint(action, nval, width - 1, neg);
+01C2    8B 46 FC                  mov         ax,word ptr -0x4[bp] 
+01C5    0B 46 FA                  or          ax,word ptr -0x6[bp] 
+01C8    85 C0                     test        ax,ax 
+01CA    74 1D                     je          L$23 
+01CC    8B 46 10                  mov         ax,word ptr 0x10[bp] 
+01CF    50                        push        ax 
+01D0    8B 46 0E                  mov         ax,word ptr 0xe[bp] 
+01D3    48                        dec         ax 
+01D4    50                        push        ax 
+01D5    8B 56 FA                  mov         dx,word ptr -0x6[bp] 
+01D8    8B 46 FC                  mov         ax,word ptr -0x4[bp] 
+01DB    50                        push        ax 
+01DC    52                        push        dx 
+01DD    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+01E0    50                        push        ax 
+01E1    E8 00 00                  call        _put_luint 
+01E4    83 C4 0A                  add         sp,0x000a 
+
+    else {
+01E7    EB 2E                     jmp         L$25 
+
+        while(--width > 0) send(action, ' ');
+01E9                          L$23:
+01E9    83 46 0E FF               add         word ptr 0xe[bp],0xffff 
+01ED    83 7E 0E 00               cmp         word ptr 0xe[bp],0x0000 
+01F1    7E 10                     jle         L$24 
+01F3    B8 20 00                  mov         ax,0x0020 
+01F6    50                        push        ax 
+01F7    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+01FA    50                        push        ax 
+01FB    E8 00 00                  call        _send 
+01FE    83 C4 04                  add         sp,0x0004 
+0201    EB E6                     jmp         L$23 
+
+        if(neg) send(action, '-');
+0203                          L$24:
+0203    83 7E 10 00               cmp         word ptr 0x10[bp],0x0000 
+0207    74 0E                     je          L$25 
+0209    B8 2D 00                  mov         ax,0x002d 
+020C    50                        push        ax 
+020D    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0210    50                        push        ax 
+0211    E8 00 00                  call        _send 
+0214    83 C4 04                  add         sp,0x0004 
+
+    }
+    send(action, val - (nval * 10) + '0');
+0217                          L$25:
+0217    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+021A    B4 0A                     mov         ah,0x0a 
+021C    F6 E4                     mul         ah 
+021E    8A 66 0A                  mov         ah,byte ptr 0xa[bp] 
+0221    28 C4                     sub         ah,al 
+0223    88 E0                     mov         al,ah 
+0225    04 30                     add         al,0x30 
+0227    30 E4                     xor         ah,ah 
+0229    50                        push        ax 
+022A    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+022D    50                        push        ax 
+022E    E8 00 00                  call        _send 
+0231    83 C4 04                  add         sp,0x0004 
+
+}
+0234                          L$26:
+0234    C9                        leave       
+0235    5F                        pop         di 
+0236    5E                        pop         si 
+0237    C3                        ret         
+
+//--------------------------------------------------------------------------
+static void put_str(Bit16u action, Bit16u segment, Bit16u offset)
+0238                          _put_str:
+0238    56                        push        si 
+0239    57                        push        di 
+023A    55                        push        bp 
+023B    89 E5                     mov         bp,sp 
+023D    81 EC 04 00               sub         sp,0x0004 
+
+{
+    Bit8u c;
+    while(c = read_byte(segment, offset)) {
+0241                          L$27:
+0241    8B 5E 0C                  mov         bx,word ptr 0xc[bp] 
+0244    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+0247    1E                        push        ds 
+0248    8E D8                     mov         ds,ax 
+024A    8A 07                     mov         al,byte ptr [bx] 
+024C    1F                        pop         ds 
+024D    88 46 FE                  mov         byte ptr -0x2[bp],al 
+0250    80 7E FE 00               cmp         byte ptr -0x2[bp],0x00 
+0254    74 18                     je          L$30 
+
+        send(action, c);
+0256                          L$28:
+0256    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0259    30 E4                     xor         ah,ah 
+025B    50                        push        ax 
+025C    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+025F    50                        push        ax 
+0260    E8 00 00                  call        _send 
+0263    83 C4 04                  add         sp,0x0004 
+
+        offset++;
+0266    8B 46 0C                  mov         ax,word ptr 0xc[bp] 
+0269    FF 46 0C                  inc         word ptr 0xc[bp] 
+
+    }
+026C                          L$29:
+026C    EB D3                     jmp         L$27 
+
+}
+026E                          L$30:
+026E    C9                        leave       
+026F    5F                        pop         di 
+0270    5E                        pop         si 
+0271    C3                        ret         
+
+
+//--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+// bios_printf()  A compact variable argument printf function.
+//   Supports %[format_width][length]format
+//   where format can be x,X,u,d,s,S,c
+//   and the optional length modifier is l (ell)
+//--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+static void bios_printf(Bit16u action, Bit8u *s, ...)
+0272                          _bios_printf:
+0272    56                        push        si 
+0273    57                        push        di 
+0274    55                        push        bp 
+0275    89 E5                     mov         bp,sp 
+0277    81 EC 1A 00               sub         sp,0x001a 
+
+{
+    Bit8u    c;
+    bx_bool  in_format;
+    short    i;
+    Bit16u  *arg_ptr;
+    Bit16u   arg_seg, arg, nibble, hibyte, format_width, hexadd;
+
+    arg_ptr = (Bit16u  *)&s;
+027B                          L$31:
+027B    8D 46 0A                  lea         ax,0xa[bp] 
+027E    89 46 F2                  mov         word ptr -0xe[bp],ax 
+
+    arg_seg = get_SS();
+0281    8C D0                     mov         ax,ss 
+0283    89 46 F4                  mov         word ptr -0xc[bp],ax 
+
+
+    in_format = 0;
+0286    C7 46 EE 00 00            mov         word ptr -0x12[bp],0x0000 
+
+    format_width = 0;
+028B    C7 46 EC 00 00            mov         word ptr -0x14[bp],0x0000 
+
+
+    if((action & BIOS_PRINTF_DEBHALT) == BIOS_PRINTF_DEBHALT)
+0290    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0293    25 07 00                  and         ax,0x0007 
+0296    3D 07 00                  cmp         ax,0x0007 
+0299    75 0C                     jne         L$32 
+
+        bios_printf(BIOS_PRINTF_SCREEN, "FATAL: ");
+029B    B8 00 00                  mov         ax,offset DGROUP:L$129 
+029E    50                        push        ax 
+029F    6A 02                     push        0x0002 
+02A1    E8 00 00                  call        _bios_printf 
+02A4    83 C4 04                  add         sp,0x0004 
+
+
+    while(c = read_byte(get_CS(), (Bit16u)s)) {
+02A7                          L$32:
+02A7    8B 5E 0A                  mov         bx,word ptr 0xa[bp] 
+02AA    8C C8                     mov         ax,cs 
+02AC    1E                        push        ds 
+02AD    8E D8                     mov         ds,ax 
+02AF    8A 07                     mov         al,byte ptr [bx] 
+02B1    1F                        pop         ds 
+02B2    88 46 FE                  mov         byte ptr -0x2[bp],al 
+02B5    80 7E FE 00               cmp         byte ptr -0x2[bp],0x00 
+02B9    75 03                     jne         L$33 
+02BB    E9 6A 03                  jmp         L$95 
+
+        if( c == '%' ) {
+02BE                          L$33:
+02BE    80 7E FE 25               cmp         byte ptr -0x2[bp],0x25 
+02C2    75 0D                     jne         L$36 
+
+            in_format = 1;
+02C4                          L$34:
+02C4    C7 46 EE 01 00            mov         word ptr -0x12[bp],0x0001 
+
+            format_width = 0;
+02C9    C7 46 EC 00 00            mov         word ptr -0x14[bp],0x0000 
+
+        }
+        else if(in_format) {
+02CE                          L$35:
+02CE    E9 4E 03                  jmp         L$93 
+02D1                          L$36:
+02D1    83 7E EE 00               cmp         word ptr -0x12[bp],0x0000 
+02D5    75 03                     jne         L$37 
+02D7    E9 35 03                  jmp         L$92 
+
+            if( (c >= '0') && (c <= '9') ) {
+02DA                          L$37:
+02DA    80 7E FE 30               cmp         byte ptr -0x2[bp],0x30 
+02DE    72 06                     jb          L$38 
+02E0    80 7E FE 39               cmp         byte ptr -0x2[bp],0x39 
+02E4    76 02                     jbe         L$39 
+02E6                          L$38:
+02E6    EB 14                     jmp         L$41 
+
+                format_width = (format_width * 10) + (c - '0');
+02E8                          L$39:
+02E8    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+02EB    30 E4                     xor         ah,ah 
+02ED    6B 56 EC 0A               imul        dx,word ptr -0x14[bp],0x000a 
+02F1    2D 30 00                  sub         ax,0x0030 
+02F4    01 C2                     add         dx,ax 
+02F6    89 56 EC                  mov         word ptr -0x14[bp],dx 
+
+            }
+            else {
+02F9                          L$40:
+02F9    E9 11 03                  jmp         L$91 
+
+                arg_ptr++;              // increment to next arg
+02FC                          L$41:
+02FC    8B 46 F2                  mov         ax,word ptr -0xe[bp] 
+02FF    83 46 F2 02               add         word ptr -0xe[bp],0x0002 
+
+                arg = read_word(arg_seg, (Bit16u)arg_ptr);
+0303    8B 5E F2                  mov         bx,word ptr -0xe[bp] 
+0306    8B 46 F4                  mov         ax,word ptr -0xc[bp] 
+0309    1E                        push        ds 
+030A    8E D8                     mov         ds,ax 
+030C    8B 07                     mov         ax,word ptr [bx] 
+030E    1F                        pop         ds 
+030F    89 46 F6                  mov         word ptr -0xa[bp],ax 
+
+                if(c == 'x' || c == 'X') {
+0312    80 7E FE 78               cmp         byte ptr -0x2[bp],0x78 
+0316    74 09                     je          L$42 
+0318    80 7E FE 58               cmp         byte ptr -0x2[bp],0x58 
+031C    74 03                     je          L$42 
+031E    E9 78 00                  jmp         L$52 
+
+                    if(format_width == 0) format_width = 4;
+0321                          L$42:
+0321    83 7E EC 00               cmp         word ptr -0x14[bp],0x0000 
+0325    75 05                     jne         L$43 
+0327    C7 46 EC 04 00            mov         word ptr -0x14[bp],0x0004 
+
+                    if(c == 'x') hexadd = 'a';
+032C                          L$43:
+032C    80 7E FE 78               cmp         byte ptr -0x2[bp],0x78 
+0330    75 07                     jne         L$44 
+0332    C7 46 FC 61 00            mov         word ptr -0x4[bp],0x0061 
+
+                    else         hexadd = 'A';
+0337    EB 05                     jmp         L$45 
+0339                          L$44:
+0339    C7 46 FC 41 00            mov         word ptr -0x4[bp],0x0041 
+
+                    for(i = format_width-1; i >= 0; i--) {
+033E                          L$45:
+033E    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+0341    48                        dec         ax 
+0342    89 46 F0                  mov         word ptr -0x10[bp],ax 
+0345                          L$46:
+0345    83 7E F0 00               cmp         word ptr -0x10[bp],0x0000 
+0349    7C 4B                     jl          L$51 
+
+                        nibble = (arg >> (4 * i)) & 0x000f;
+034B                          L$47:
+034B    8B 4E F0                  mov         cx,word ptr -0x10[bp] 
+034E    C1 E1 02                  shl         cx,0x02 
+0351    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+0354    D3 E8                     shr         ax,cl 
+0356    89 C1                     mov         cx,ax 
+0358    83 E1 0F                  and         cx,0x000f 
+035B    89 4E F8                  mov         word ptr -0x8[bp],cx 
+
+                        send(action, (nibble<=9)? (nibble+'0') : (nibble-10+hexadd));
+035E    83 7E F8 09               cmp         word ptr -0x8[bp],0x0009 
+0362    77 0B                     ja          L$48 
+0364    8B 46 F8                  mov         ax,word ptr -0x8[bp] 
+0367    05 30 00                  add         ax,0x0030 
+036A    89 46 E8                  mov         word ptr -0x18[bp],ax 
+036D    EB 0E                     jmp         L$49 
+036F                          L$48:
+036F    8B 46 F8                  mov         ax,word ptr -0x8[bp] 
+0372    2D 0A 00                  sub         ax,0x000a 
+0375    8B 56 FC                  mov         dx,word ptr -0x4[bp] 
+0378    01 C2                     add         dx,ax 
+037A    89 56 E8                  mov         word ptr -0x18[bp],dx 
+037D                          L$49:
+037D    8A 46 E8                  mov         al,byte ptr -0x18[bp] 
+0380    30 E4                     xor         ah,ah 
+0382    50                        push        ax 
+0383    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0386    50                        push        ax 
+0387    E8 00 00                  call        _send 
+038A    83 C4 04                  add         sp,0x0004 
+
+                    }
+038D                          L$50:
+038D    8B 46 F0                  mov         ax,word ptr -0x10[bp] 
+0390    83 46 F0 FF               add         word ptr -0x10[bp],0xffff 
+0394    EB AF                     jmp         L$46 
+
+                }
+                else if(c == 'u') {
+0396                          L$51:
+0396    E9 6F 02                  jmp         L$90 
+0399                          L$52:
+0399    80 7E FE 75               cmp         byte ptr -0x2[bp],0x75 
+039D    75 17                     jne         L$55 
+
+                    put_uint(action, arg, format_width, 0);
+039F                          L$53:
+039F    6A 00                     push        0x0000 
+03A1    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+03A4    50                        push        ax 
+03A5    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+03A8    50                        push        ax 
+03A9    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+03AC    50                        push        ax 
+03AD    E8 00 00                  call        _put_uint 
+03B0    83 C4 08                  add         sp,0x0008 
+
+                }
+                else if(c == 'l') {
+03B3                          L$54:
+03B3    E9 52 02                  jmp         L$90 
+03B6                          L$55:
+03B6    80 7E FE 6C               cmp         byte ptr -0x2[bp],0x6c 
+03BA    74 03                     je          L$56 
+03BC    E9 99 01                  jmp         L$76 
+
+                    s++;
+03BF                          L$56:
+03BF    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+03C2    FF 46 0A                  inc         word ptr 0xa[bp] 
+
+                    c = read_byte(get_CS(), (Bit16u)s);       // is it ld,lx,lu? 
+03C5    8B 5E 0A                  mov         bx,word ptr 0xa[bp] 
+03C8    8C C8                     mov         ax,cs 
+03CA    1E                        push        ds 
+03CB    8E D8                     mov         ds,ax 
+03CD    8A 07                     mov         al,byte ptr [bx] 
+03CF    1F                        pop         ds 
+03D0    88 46 FE                  mov         byte ptr -0x2[bp],al 
+
+                    arg_ptr++;                                // increment to next arg
+03D3    8B 46 F2                  mov         ax,word ptr -0xe[bp] 
+03D6    83 46 F2 02               add         word ptr -0xe[bp],0x0002 
+
+                    hibyte = read_word(arg_seg, (Bit16u)arg_ptr);
+03DA    8B 5E F2                  mov         bx,word ptr -0xe[bp] 
+03DD    8B 46 F4                  mov         ax,word ptr -0xc[bp] 
+03E0    1E                        push        ds 
+03E1    8E D8                     mov         ds,ax 
+03E3    8B 07                     mov         ax,word ptr [bx] 
+03E5    1F                        pop         ds 
+03E6    89 46 FA                  mov         word ptr -0x6[bp],ax 
+
+                    if(c == 'd') {
+03E9    80 7E FE 64               cmp         byte ptr -0x2[bp],0x64 
+03ED    75 76                     jne         L$60 
+
+                        if(hibyte & 0x8000) put_luint(action, 0L-(((Bit32u) hibyte << 16) | arg), format_width-1, 1);
+03EF                          L$57:
+03EF    F7 46 FA 00 80            test        word ptr -0x6[bp],0x8000 
+03F4    74 3E                     je          L$58 
+03F6    6A 01                     push        0x0001 
+03F8    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+03FB    48                        dec         ax 
+03FC    50                        push        ax 
+03FD    8B 56 FA                  mov         dx,word ptr -0x6[bp] 
+0400    31 C0                     xor         ax,ax 
+0402    89 D3                     mov         bx,dx 
+0404    89 C2                     mov         dx,ax 
+0406    89 D8                     mov         ax,bx 
+0408    31 D2                     xor         dx,dx 
+040A    8B 4E F6                  mov         cx,word ptr -0xa[bp] 
+040D    31 DB                     xor         bx,bx 
+040F    89 CE                     mov         si,cx 
+0411    89 D9                     mov         cx,bx 
+0413    09 F2                     or          dx,si 
+0415    89 D3                     mov         bx,dx 
+0417    09 C8                     or          ax,cx 
+0419    89 C2                     mov         dx,ax 
+041B    89 D0                     mov         ax,dx 
+041D    F7 D8                     neg         ax 
+041F    89 DA                     mov         dx,bx 
+0421    F7 DA                     neg         dx 
+0423    1D 00 00                  sbb         ax,0x0000 
+0426    50                        push        ax 
+0427    52                        push        dx 
+0428    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+042B    50                        push        ax 
+042C    E8 00 00                  call        _put_luint 
+042F    83 C4 0A                  add         sp,0x000a 
+
+                        else                put_luint(action, ((Bit32u) hibyte << 16) | arg, format_width, 0);
+0432    EB 2E                     jmp         L$59 
+0434                          L$58:
+0434    6A 00                     push        0x0000 
+0436    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+0439    50                        push        ax 
+043A    8B 56 FA                  mov         dx,word ptr -0x6[bp] 
+043D    31 C0                     xor         ax,ax 
+043F    89 D3                     mov         bx,dx 
+0441    89 C2                     mov         dx,ax 
+0443    89 D9                     mov         cx,bx 
+0445    31 F6                     xor         si,si 
+0447    8B 56 F6                  mov         dx,word ptr -0xa[bp] 
+044A    31 C0                     xor         ax,ax 
+044C    89 D3                     mov         bx,dx 
+044E    89 C2                     mov         dx,ax 
+0450    09 F3                     or          bx,si 
+0452    09 D1                     or          cx,dx 
+0454    89 C8                     mov         ax,cx 
+0456    50                        push        ax 
+0457    53                        push        bx 
+0458    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+045B    50                        push        ax 
+045C    E8 00 00                  call        _put_luint 
+045F    83 C4 0A                  add         sp,0x000a 
+
+                    }
+                    else if(c == 'u') {
+0462                          L$59:
+0462    E9 F0 00                  jmp         L$75 
+0465                          L$60:
+0465    80 7E FE 75               cmp         byte ptr -0x2[bp],0x75 
+0469    75 31                     jne         L$63 
+
+                        put_luint(action, ((Bit32u) hibyte << 16) | arg, format_width, 0);
+046B                          L$61:
+046B    6A 00                     push        0x0000 
+046D    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+0470    50                        push        ax 
+0471    8B 56 FA                  mov         dx,word ptr -0x6[bp] 
+0474    31 C0                     xor         ax,ax 
+0476    89 D3                     mov         bx,dx 
+0478    89 C2                     mov         dx,ax 
+047A    89 D9                     mov         cx,bx 
+047C    31 F6                     xor         si,si 
+047E    8B 56 F6                  mov         dx,word ptr -0xa[bp] 
+0481    31 C0                     xor         ax,ax 
+0483    89 D3                     mov         bx,dx 
+0485    89 C2                     mov         dx,ax 
+0487    09 F3                     or          bx,si 
+0489    09 D1                     or          cx,dx 
+048B    89 C8                     mov         ax,cx 
+048D    50                        push        ax 
+048E    53                        push        bx 
+048F    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0492    50                        push        ax 
+0493    E8 00 00                  call        _put_luint 
+0496    83 C4 0A                  add         sp,0x000a 
+
+                    }
+                    else if(c == 'x' || c == 'X') {
+0499                          L$62:
+0499    E9 B9 00                  jmp         L$75 
+049C                          L$63:
+049C    80 7E FE 78               cmp         byte ptr -0x2[bp],0x78 
+04A0    74 09                     je          L$64 
+04A2    80 7E FE 58               cmp         byte ptr -0x2[bp],0x58 
+04A6    74 03                     je          L$64 
+04A8    E9 AA 00                  jmp         L$75 
+
+                        if(format_width == 0) format_width = 8;
+04AB                          L$64:
+04AB    83 7E EC 00               cmp         word ptr -0x14[bp],0x0000 
+04AF    75 05                     jne         L$65 
+04B1    C7 46 EC 08 00            mov         word ptr -0x14[bp],0x0008 
+
+                        if(c == 'x') hexadd = 'a';
+04B6                          L$65:
+04B6    80 7E FE 78               cmp         byte ptr -0x2[bp],0x78 
+04BA    75 07                     jne         L$66 
+04BC    C7 46 FC 61 00            mov         word ptr -0x4[bp],0x0061 
+
+                        else          hexadd = 'A';
+04C1    EB 05                     jmp         L$67 
+04C3                          L$66:
+04C3    C7 46 FC 41 00            mov         word ptr -0x4[bp],0x0041 
+
+                        for(i=format_width-1; i>=0; i--) {
+04C8                          L$67:
+04C8    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+04CB    48                        dec         ax 
+04CC    89 46 F0                  mov         word ptr -0x10[bp],ax 
+04CF                          L$68:
+04CF    83 7E F0 00               cmp         word ptr -0x10[bp],0x0000 
+04D3    7D 03                     jge         L$69 
+04D5    E9 7D 00                  jmp         L$75 
+
+                            nibble = ((((Bit32u) hibyte <<16) | arg) >> (4 * i)) & 0x000f;
+04D8                          L$69:
+04D8    8B 56 FA                  mov         dx,word ptr -0x6[bp] 
+04DB    31 C0                     xor         ax,ax 
+04DD    89 D3                     mov         bx,dx 
+04DF    89 C2                     mov         dx,ax 
+04E1    31 C9                     xor         cx,cx 
+04E3    8B 56 F6                  mov         dx,word ptr -0xa[bp] 
+04E6    31 C0                     xor         ax,ax 
+04E8    89 D6                     mov         si,dx 
+04EA    89 C2                     mov         dx,ax 
+04EC    09 F1                     or          cx,si 
+04EE    89 CF                     mov         di,cx 
+04F0    09 D3                     or          bx,dx 
+04F2    89 DE                     mov         si,bx 
+04F4    8B 56 F0                  mov         dx,word ptr -0x10[bp] 
+04F7    C1 E2 02                  shl         dx,0x02 
+04FA    31 C0                     xor         ax,ax 
+04FC    89 D3                     mov         bx,dx 
+04FE    89 C1                     mov         cx,ax 
+0500    89 F8                     mov         ax,di 
+0502    89 F2                     mov         dx,si 
+0504    89 D9                     mov         cx,bx 
+0506    E3 06                     jcxz        L$71 
+0508                          L$70:
+0508    D1 EA                     shr         dx,0x01 
+050A    D1 D8                     rcr         ax,0x01 
+050C    E2 FA                     loop        L$70 
+050E                          L$71:
+050E    89 C3                     mov         bx,ax 
+0510    89 D0                     mov         ax,dx 
+0512    83 E3 0F                  and         bx,0x000f 
+0515    89 DA                     mov         dx,bx 
+0517    31 C0                     xor         ax,ax 
+0519    89 56 F8                  mov         word ptr -0x8[bp],dx 
+
+                            send(action, (nibble<=9)? (nibble+'0') : (nibble-10+hexadd));
+051C    83 7E F8 09               cmp         word ptr -0x8[bp],0x0009 
+0520    77 0B                     ja          L$72 
+0522    8B 46 F8                  mov         ax,word ptr -0x8[bp] 
+0525    05 30 00                  add         ax,0x0030 
+0528    89 46 E6                  mov         word ptr -0x1a[bp],ax 
+052B    EB 0E                     jmp         L$73 
+052D                          L$72:
+052D    8B 46 F8                  mov         ax,word ptr -0x8[bp] 
+0530    2D 0A 00                  sub         ax,0x000a 
+0533    8B 56 FC                  mov         dx,word ptr -0x4[bp] 
+0536    01 C2                     add         dx,ax 
+0538    89 56 E6                  mov         word ptr -0x1a[bp],dx 
+053B                          L$73:
+053B    8A 46 E6                  mov         al,byte ptr -0x1a[bp] 
+053E    30 E4                     xor         ah,ah 
+0540    50                        push        ax 
+0541    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0544    50                        push        ax 
+0545    E8 00 00                  call        _send 
+0548    83 C4 04                  add         sp,0x0004 
+
+                        }
+054B                          L$74:
+054B    8B 46 F0                  mov         ax,word ptr -0x10[bp] 
+054E    83 46 F0 FF               add         word ptr -0x10[bp],0xffff 
+0552    E9 7A FF                  jmp         L$68 
+
+                    }
+                }
+                else if(c == 'd') {
+0555                          L$75:
+0555    E9 B0 00                  jmp         L$90 
+0558                          L$76:
+0558    80 7E FE 64               cmp         byte ptr -0x2[bp],0x64 
+055C    75 37                     jne         L$80 
+
+                    if(arg & 0x8000) put_int(action, -arg, format_width - 1, 1);
+055E                          L$77:
+055E    F7 46 F6 00 80            test        word ptr -0xa[bp],0x8000 
+0563    74 19                     je          L$78 
+0565    6A 01                     push        0x0001 
+0567    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+056A    48                        dec         ax 
+056B    50                        push        ax 
+056C    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+056F    F7 D8                     neg         ax 
+0571    50                        push        ax 
+0572    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0575    50                        push        ax 
+0576    E8 00 00                  call        _put_int 
+0579    83 C4 08                  add         sp,0x0008 
+
+                    else             put_int(action, arg, format_width, 0);
+057C    EB 14                     jmp         L$79 
+057E                          L$78:
+057E    6A 00                     push        0x0000 
+0580    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+0583    50                        push        ax 
+0584    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+0587    50                        push        ax 
+0588    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+058B    50                        push        ax 
+058C    E8 00 00                  call        _put_int 
+058F    83 C4 08                  add         sp,0x0008 
+
+                }
+                else if(c == 's') {
+0592                          L$79:
+0592    E9 73 00                  jmp         L$90 
+0595                          L$80:
+0595    80 7E FE 73               cmp         byte ptr -0x2[bp],0x73 
+0599    75 13                     jne         L$83 
+
+                    put_str(action, get_CS(), arg);
+059B                          L$81:
+059B    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+059E    50                        push        ax 
+059F    8C C8                     mov         ax,cs 
+05A1    50                        push        ax 
+05A2    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+05A5    50                        push        ax 
+05A6    E8 00 00                  call        _put_str 
+05A9    83 C4 06                  add         sp,0x0006 
+
+                }
+                else if(c == 'S') {
+05AC                          L$82:
+05AC    EB 5A                     jmp         L$90 
+05AE                          L$83:
+05AE    80 7E FE 53               cmp         byte ptr -0x2[bp],0x53 
+05B2    75 30                     jne         L$86 
+
+                    hibyte = arg;
+05B4                          L$84:
+05B4    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+05B7    89 46 FA                  mov         word ptr -0x6[bp],ax 
+
+                    arg_ptr++;
+05BA    8B 46 F2                  mov         ax,word ptr -0xe[bp] 
+05BD    83 46 F2 02               add         word ptr -0xe[bp],0x0002 
+
+                    arg = read_word(arg_seg, (Bit16u)arg_ptr);
+05C1    8B 5E F2                  mov         bx,word ptr -0xe[bp] 
+05C4    8B 46 F4                  mov         ax,word ptr -0xc[bp] 
+05C7    1E                        push        ds 
+05C8    8E D8                     mov         ds,ax 
+05CA    8B 07                     mov         ax,word ptr [bx] 
+05CC    1F                        pop         ds 
+05CD    89 46 F6                  mov         word ptr -0xa[bp],ax 
+
+                    put_str(action, hibyte, arg);
+05D0    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+05D3    50                        push        ax 
+05D4    8B 46 FA                  mov         ax,word ptr -0x6[bp] 
+05D7    50                        push        ax 
+05D8    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+05DB    50                        push        ax 
+05DC    E8 00 00                  call        _put_str 
+05DF    83 C4 06                  add         sp,0x0006 
+
+                }
+                else if(c == 'c') {
+05E2                          L$85:
+05E2    EB 24                     jmp         L$90 
+05E4                          L$86:
+05E4    80 7E FE 63               cmp         byte ptr -0x2[bp],0x63 
+05E8    75 12                     jne         L$89 
+
+                    send(action, arg);
+05EA                          L$87:
+05EA    8A 46 F6                  mov         al,byte ptr -0xa[bp] 
+05ED    30 E4                     xor         ah,ah 
+05EF    50                        push        ax 
+05F0    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+05F3    50                        push        ax 
+05F4    E8 00 00                  call        _send 
+05F7    83 C4 04                  add         sp,0x0004 
+
+                }
+                else bios_printf(BIOS_PRINTF_DEBHALT,"bios_printf: unknown format\n");
+05FA                          L$88:
+05FA    EB 0C                     jmp         L$90 
+05FC                          L$89:
+05FC    B8 08 00                  mov         ax,offset DGROUP:L$130 
+05FF    50                        push        ax 
+0600    6A 07                     push        0x0007 
+0602    E8 00 00                  call        _bios_printf 
+0605    83 C4 04                  add         sp,0x0004 
+
+                in_format = 0;
+0608                          L$90:
+0608    C7 46 EE 00 00            mov         word ptr -0x12[bp],0x0000 
+
+            }
+        }
+        else {
+060D                          L$91:
+060D    EB 10                     jmp         L$93 
+
+            send(action, c);
+060F                          L$92:
+060F    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0612    30 E4                     xor         ah,ah 
+0614    50                        push        ax 
+0615    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0618    50                        push        ax 
+0619    E8 00 00                  call        _send 
+061C    83 C4 04                  add         sp,0x0004 
+
+        }
+        s ++;
+061F                          L$93:
+061F    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+0622    FF 46 0A                  inc         word ptr 0xa[bp] 
+
+    }
+0625                          L$94:
+0625    E9 7F FC                  jmp         L$32 
+
+
+    if(action & BIOS_PRINTF_HALT) {  // freeze in a busy loop.
+0628                          L$95:
+0628    F7 46 08 01 00            test        word ptr 0x8[bp],0x0001 
+062D    74 04                     je          L$98 
+
+        __asm {
+062F                          L$96:
+062F    FA                        cli         
+0630                          L$97:
+0630    F4                        hlt         
+0631    EB FD                     jmp         L$97 
+
+                        cli
+            halt2_loop: hlt
+                        jmp halt2_loop
+        }
+    }
+}
+0633                          L$98:
+0633    C9                        leave       
+0634    5F                        pop         di 
+0635    5E                        pop         si 
+0636    C3                        ret         
+
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+// print_bios_banner -  displays a the bios version
+//--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+#define BIOS_COPYRIGHT_STRING   "(c) 2009, 2010 Zeus Gomez Marmolejo and (c) 2002 MandrakeSoft S.A.\n"
+void __cdecl print_bios_banner(void)
+
+Routine Size: 1591 bytes,    Routine Base: _TEXT + 0000
+
+0637                          _print_bios_banner:
+0637    56                        push        si 
+0638    57                        push        di 
+0639    55                        push        bp 
+063A    89 E5                     mov         bp,sp 
+063C    81 EC 12 00               sub         sp,0x0012 
+
+{
+   Bit8u val, pattern, incr, readback;
+   Bit16u addr, start, end, tested_segment; 
+    
+    biosfn_set_cursor_pos(0x0, 0x0000); // SET 0-pos
+0640                          L$99:
+0640    6A 00                     push        0x0000 
+0642    31 C0                     xor         ax,ax 
+0644    50                        push        ax 
+0645    E8 00 00                  call        _biosfn_set_cursor_pos 
+0648    83 C4 04                  add         sp,0x0004 
+
+    bios_printf(BIOS_PRINTF_SCREEN,BIOS_COPYRIGHT_STRING);
+064B    B8 25 00                  mov         ax,offset DGROUP:L$131 
+064E    50                        push        ax 
+064F    6A 02                     push        0x0002 
+0651    E8 00 00                  call        _bios_printf 
+0654    83 C4 04                  add         sp,0x0004 
+
+    //===================================================
+    tested_segment = 0x1000;
+0657    C7 46 F6 00 10            mov         word ptr -0xa[bp],0x1000 
+
+    pattern =0x0;
+065C    C6 46 FE 00               mov         byte ptr -0x2[bp],0x00 
+
+    incr =1;
+0660    C6 46 FA 01               mov         byte ptr -0x6[bp],0x01 
+
+    start = 0x0000;
+0664    C7 46 F2 00 00            mov         word ptr -0xe[bp],0x0000 
+
+    end  = 0xFFF0;
+0669    C7 46 F4 F0 FF            mov         word ptr -0xc[bp],0xfff0 
+
+    mem_test (tested_segment, start, end, pattern, incr);
+066E    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+0671    30 E4                     xor         ah,ah 
+0673    50                        push        ax 
+0674    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0677    30 E4                     xor         ah,ah 
+0679    50                        push        ax 
+067A    8B 46 F4                  mov         ax,word ptr -0xc[bp] 
+067D    50                        push        ax 
+067E    8B 46 F2                  mov         ax,word ptr -0xe[bp] 
+0681    50                        push        ax 
+0682    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+0685    50                        push        ax 
+0686    E8 00 00                  call        _mem_test 
+0689    83 C4 0A                  add         sp,0x000a 
+
+   //////////// =====================VGA
+   /*
+    tested_segment = 0xA000;
+    pattern =0x0;
+    incr =1;
+    start = 0x0000;
+    end  = 0xFFF0;
+    mem_test (tested_segment, start, end, pattern, incr);
+   ///////////////////////////////////////////////////////////////////////////////////////////
+   addr = 0x1234;
+   val =0x33;
+   write_byte( tested_segment, addr , val);
+   readback = read_byte( tested_segment, addr);
+   bios_printf(BIOS_PRINTF_SCREEN, "TEST MEM: addr - %x, data- %x /n ", addr, readback);
+   //========
+    tested_segment = 0xB000;
+    pattern =0x0;
+    incr =1;
+    start = 0x0000;
+    end  = 0xFFF0;
+    mem_test (tested_segment, start, end, pattern, incr);
+    */
+    //========================================
+    tested_segment = 0x0000;
+068C    C7 46 F6 00 00            mov         word ptr -0xa[bp],0x0000 
+
+    pattern =0x0;
+0691    C6 46 FE 00               mov         byte ptr -0x2[bp],0x00 
+
+    incr =1;
+0695    C6 46 FA 01               mov         byte ptr -0x6[bp],0x01 
+
+    start = 0x0000;
+0699    C7 46 F2 00 00            mov         word ptr -0xe[bp],0x0000 
+
+    end  = 0xFFFF;
+069E    C7 46 F4 FF FF            mov         word ptr -0xc[bp],0xffff 
+
+    mem_test (tested_segment, start, end, pattern, incr);
+06A3    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+06A6    30 E4                     xor         ah,ah 
+06A8    50                        push        ax 
+06A9    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+06AC    30 E4                     xor         ah,ah 
+06AE    50                        push        ax 
+06AF    8B 46 F4                  mov         ax,word ptr -0xc[bp] 
+06B2    50                        push        ax 
+06B3    8B 46 F2                  mov         ax,word ptr -0xe[bp] 
+06B6    50                        push        ax 
+06B7    8B 46 F6                  mov         ax,word ptr -0xa[bp] 
+06BA    50                        push        ax 
+06BB    E8 00 00                  call        _mem_test 
+06BE    83 C4 0A                  add         sp,0x000a 
+
+   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    write_byte(0xB800, 80*24*2, 0x53);  // =S
+06C1    B2 53                     mov         dl,0x53 
+06C3    BB 00 0F                  mov         bx,0x0f00 
+06C6    B8 00 B8                  mov         ax,0xb800 
+06C9    1E                        push        ds 
+06CA    8E D8                     mov         ds,ax 
+06CC    88 17                     mov         byte ptr [bx],dl 
+06CE    1F                        pop         ds 
+
+    while(1);
+06CF                          L$100:
+06CF    EB FE                     jmp         L$100 
+
+}
+06D1                          L$101:
+06D1    C9                        leave       
+06D2    5F                        pop         di 
+06D3    5E                        pop         si 
+06D4    C3                        ret         
+
+
+//---------------------------------------------------------------------------
+//  End
+//---------------------------------------------------------------------------
+static void mem_test (Bit16u tested_segment, Bit16u start, Bit16u end, Bit8u pattern, Bit8u incr)
+06D5                          _mem_test:
+06D5    56                        push        si 
+06D6    57                        push        di 
+06D7    55                        push        bp 
+06D8    89 E5                     mov         bp,sp 
+06DA    81 EC 08 00               sub         sp,0x0008 
+
+{
+   Bit8u val, readback;
+   Bit16u addr;
+   
+   bios_printf(BIOS_PRINTF_SCREEN, "TEST MEM seg: %x \n", tested_segment);
+06DE                          L$102:
+06DE    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+06E1    50                        push        ax 
+06E2    B8 69 00                  mov         ax,offset DGROUP:L$132 
+06E5    50                        push        ax 
+06E6    6A 02                     push        0x0002 
+06E8    E8 00 00                  call        _bios_printf 
+06EB    83 C4 06                  add         sp,0x0006 
+
+   bios_printf(BIOS_PRINTF_SCREEN, "TEST MEM start: %x \n", start);
+06EE    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+06F1    50                        push        ax 
+06F2    B8 7C 00                  mov         ax,offset DGROUP:L$133 
+06F5    50                        push        ax 
+06F6    6A 02                     push        0x0002 
+06F8    E8 00 00                  call        _bios_printf 
+06FB    83 C4 06                  add         sp,0x0006 
+
+   bios_printf(BIOS_PRINTF_SCREEN, "TEST MEM stop: %x \n", end );
+06FE    8B 46 0C                  mov         ax,word ptr 0xc[bp] 
+0701    50                        push        ax 
+0702    B8 91 00                  mov         ax,offset DGROUP:L$134 
+0705    50                        push        ax 
+0706    6A 02                     push        0x0002 
+0708    E8 00 00                  call        _bios_printf 
+070B    83 C4 06                  add         sp,0x0006 
+
+   bios_printf(BIOS_PRINTF_SCREEN, "ERROR -NO");
+070E    B8 A5 00                  mov         ax,offset DGROUP:L$135 
+0711    50                        push        ax 
+0712    6A 02                     push        0x0002 
+0714    E8 00 00                  call        _bios_printf 
+0717    83 C4 04                  add         sp,0x0004 
+
+   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        for (addr=start,val=pattern; addr<end+1; addr++) {
+071A    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+071D    89 46 FA                  mov         word ptr -0x6[bp],ax 
+0720    8A 46 0E                  mov         al,byte ptr 0xe[bp] 
+0723    88 46 FC                  mov         byte ptr -0x4[bp],al 
+0726                          L$103:
+0726    8B 46 0C                  mov         ax,word ptr 0xc[bp] 
+0729    40                        inc         ax 
+072A    3B 46 FA                  cmp         ax,word ptr -0x6[bp] 
+072D    76 1D                     jbe         L$106 
+
+            write_byte( tested_segment, addr , val);
+072F                          L$104:
+072F    8A 56 FC                  mov         dl,byte ptr -0x4[bp] 
+0732    8B 5E FA                  mov         bx,word ptr -0x6[bp] 
+0735    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0738    1E                        push        ds 
+0739    8E D8                     mov         ds,ax 
+073B    88 17                     mov         byte ptr [bx],dl 
+073D    1F                        pop         ds 
+
+            val  += incr;
+073E    8A 46 10                  mov         al,byte ptr 0x10[bp] 
+0741    00 46 FC                  add         byte ptr -0x4[bp],al 
+
+            }
+0744                          L$105:
+0744    8B 46 FA                  mov         ax,word ptr -0x6[bp] 
+0747    FF 46 FA                  inc         word ptr -0x6[bp] 
+074A    EB DA                     jmp         L$103 
+
+       for (addr=start,val=pattern; addr<end+1; addr++) {
+074C                          L$106:
+074C    8B 46 0A                  mov         ax,word ptr 0xa[bp] 
+074F    89 46 FA                  mov         word ptr -0x6[bp],ax 
+0752    8A 46 0E                  mov         al,byte ptr 0xe[bp] 
+0755    88 46 FC                  mov         byte ptr -0x4[bp],al 
+0758                          L$107:
+0758    8B 46 0C                  mov         ax,word ptr 0xc[bp] 
+075B    40                        inc         ax 
+075C    3B 46 FA                  cmp         ax,word ptr -0x6[bp] 
+075F    76 3B                     jbe         L$112 
+
+            readback = read_byte( tested_segment, addr);
+0761                          L$108:
+0761    8B 5E FA                  mov         bx,word ptr -0x6[bp] 
+0764    8B 46 08                  mov         ax,word ptr 0x8[bp] 
+0767    1E                        push        ds 
+0768    8E D8                     mov         ds,ax 
+076A    8A 07                     mov         al,byte ptr [bx] 
+076C    1F                        pop         ds 
+076D    88 46 FE                  mov         byte ptr -0x2[bp],al 
+
+           if (readback != val) {
+0770    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+0773    3A 46 FC                  cmp         al,byte ptr -0x4[bp] 
+0776    74 16                     je          L$110 
+
+                //================ERROR===================================================
+                bios_printf(BIOS_PRINTF_SCREEN, "TEST MEM ERR: addr - %x, data- %x ", addr, readback);
+0778                          L$109:
+0778    8A 46 FE                  mov         al,byte ptr -0x2[bp] 
+077B    30 E4                     xor         ah,ah 
+077D    50                        push        ax 
+077E    8B 46 FA                  mov         ax,word ptr -0x6[bp] 
+0781    50                        push        ax 
+0782    B8 AF 00                  mov         ax,offset DGROUP:L$136 
+0785    50                        push        ax 
+0786    6A 02                     push        0x0002 
+0788    E8 00 00                  call        _bios_printf 
+078B    83 C4 08                  add         sp,0x0008 
+
+               //==========================================================================
+           }
+           val += incr;
+078E                          L$110:
+078E    8A 46 10                  mov         al,byte ptr 0x10[bp] 
+0791    00 46 FC                  add         byte ptr -0x4[bp],al 
+
+     }
+0794                          L$111:
+0794    8B 46 FA                  mov         ax,word ptr -0x6[bp] 
+0797    FF 46 FA                  inc         word ptr -0x6[bp] 
+079A    EB BC                     jmp         L$107 
+
+     bios_printf(BIOS_PRINTF_SCREEN, "\n");
+079C                          L$112:
+079C    B8 D2 00                  mov         ax,offset DGROUP:L$137 
+079F    50                        push        ax 
+07A0    6A 02                     push        0x0002 
+07A2    E8 00 00                  call        _bios_printf 
+07A5    83 C4 04                  add         sp,0x0004 
+
+     bios_printf(BIOS_PRINTF_SCREEN, "FINISH \n" );
+07A8    B8 D4 00                  mov         ax,offset DGROUP:L$138 
+07AB    50                        push        ax 
+07AC    6A 02                     push        0x0002 
+07AE    E8 00 00                  call        _bios_printf 
+07B1    83 C4 04                  add         sp,0x0004 
+
+}
+07B4                          L$113:
+07B4    C9                        leave       
+07B5    5F                        pop         di 
+07B6    5E                        pop         si 
+07B7    C3                        ret         
+
+
+
+static void biosfn_set_cursor_pos(Bit8u page, Bit16u cursor)
+07B8                          _biosfn_set_cursor_pos:
+07B8    56                        push        si 
+07B9    57                        push        di 
+07BA    55                        push        bp 
+07BB    89 E5                     mov         bp,sp 
+07BD    81 EC 06 00               sub         sp,0x0006 
+
+{
+    Bit8u current;
+    Bit16u crtc_addr;
+    //if(page>7) return;  // Should not happen...
+    
+//write_word(BIOSMEM_SEG, BIOSMEM_CURSOR_POS+2*page, cursor); // Bios cursor pos
+write_word(BIOSMEM_SEG, BIOSMEM_CURSOR_POS, cursor); // Bios cursor pos
+07C1                          L$114:
+07C1    8B 56 0A                  mov         dx,word ptr 0xa[bp] 
+07C4    BB 90 FF                  mov         bx,0xff90 
+07C7    B8 00 F0                  mov         ax,0xf000 
+07CA    1E                        push        ds 
+07CB    8E D8                     mov         ds,ax 
+07CD    89 17                     mov         word ptr [bx],dx 
+07CF    1F                        pop         ds 
+
+/*
+current=read_byte(BIOSMEM_SEG,BIOSMEM_CURRENT_PAGE); // Set the hardware cursor
+    if(page==current) {     
+        crtc_addr=read_word(BIOSMEM_SEG,BIOSMEM_CRTC_ADDRESS);  // CRTC regs 0x0e and 0x0f
+        outb(crtc_addr,0x0e);
+        outb(crtc_addr+1,(cursor&0xff00)>>8);
+        outb(crtc_addr,0x0f);
+        outb(crtc_addr+1,cursor&0x00ff);
+    }
+*/
+}
+07D0                          L$115:
+07D0    C9                        leave       
+07D1    5F                        pop         di 
+07D2    5E                        pop         si 
+07D3    C3                        ret         
+
+
+
+
+static void biosfn_get_cursor_pos(Bit8u page, Bit16u *shape, Bit16u *pos)
+{
+    Bit16u ss = get_SS();
+
+    write_word(ss, (Bit16u)shape, 0);       // Default
+    write_word(ss, (Bit16u)pos,   0);
+
+    if(page>7)return;              // FIXME should handle VGA 14/16 lines
+    write_word(ss, (Bit16u)shape, read_word(BIOSMEM_SEG, BIOSMEM_CURSOR_TYPE));
+    write_word(ss, (Bit16u)pos,   read_word(BIOSMEM_SEG,BIOSMEM_CURSOR_POS+page*2));
+}
+
+static Bit8u find_vga_entry(Bit8u mode)
+{
+    Bit8u i, line = 0xFF;
+    for(i = 0; i <= MODE_MAX; i++)
+        if(vga_modes[i].svgamode == mode) {
+            line=i;
+            break;
+        }
+    return line;
+}
+
+static void biosfn_prnt_char(Bit8u car)
+07D4                          _biosfn_prnt_char:
+07D4    56                        push        si 
+07D5    57                        push        di 
+07D6    55                        push        bp 
+07D7    89 E5                     mov         bp,sp 
+07D9    81 EC 14 00               sub         sp,0x0014 
+
+{
+    // flag = WITH_ATTR / NO_ATTR
+    Bit8u  xcurs, ycurs, line;
+    Bit16u nbcols, nbrows, address;
+    Bit16u cursor;
+    Bit8u  character;
+
+   character =  car;
+07DD                          L$116:
+07DD    8A 46 08                  mov         al,byte ptr 0x8[bp] 
+07E0    88 46 FC                  mov         byte ptr -0x4[bp],al 
+
+   // if(line==0xFF)return;
+ 
+    // Get the cursor pos for the page
+    // biosfn_get_cursor_pos(page, (Bit16u *)&dummy, (Bit16u *)&cursor);
+   cursor = read_word(BIOSMEM_SEG,BIOSMEM_CURSOR_POS); 
+07E3    BB 90 FF                  mov         bx,0xff90 
+07E6    B8 00 F0                  mov         ax,0xf000 
+07E9    1E                        push        ds 
+07EA    8E D8                     mov         ds,ax 
+07EC    8B 07                     mov         ax,word ptr [bx] 
+07EE    1F                        pop         ds 
+07EF    89 46 EC                  mov         word ptr -0x14[bp],ax 
+
+   xcurs = cursor & 0x00ff; ycurs =(cursor&0xff00)>>8;
+07F2    8A 46 EC                  mov         al,byte ptr -0x14[bp] 
+07F5    88 46 FA                  mov         byte ptr -0x6[bp],al 
+07F8    8B 46 EC                  mov         ax,word ptr -0x14[bp] 
+07FB    30 C0                     xor         al,al 
+07FD    C1 E8 08                  shr         ax,0x08 
+0800    88 46 F8                  mov         byte ptr -0x8[bp],al 
+
+
+    // Get the dimensions
+    nbrows = 25;
+0803    C7 46 F2 19 00            mov         word ptr -0xe[bp],0x0019 
+
+    nbcols  = 80;
+0808    C7 46 F0 50 00            mov         word ptr -0x10[bp],0x0050 
+
+
+    switch(car) {
+080D    8A 46 08                  mov         al,byte ptr 0x8[bp] 
+0810    88 46 FE                  mov         byte ptr -0x2[bp],al 
+0813    80 7E FE 08               cmp         byte ptr -0x2[bp],0x08 
+0817    72 14                     jb          L$117 
+0819    80 7E FE 08               cmp         byte ptr -0x2[bp],0x08 
+081D    76 18                     jbe         L$119 
+081F    80 7E FE 0D               cmp         byte ptr -0x2[bp],0x0d 
+0823    74 21                     je          L$121 
+0825    80 7E FE 0A               cmp         byte ptr -0x2[bp],0x0a 
+0829    74 21                     je          L$122 
+082B    EB 2B                     jmp         L$123 
+082D                          L$117:
+082D    80 7E FE 07               cmp         byte ptr -0x2[bp],0x07 
+0831    74 02                     je          L$118 
+0833    EB 23                     jmp         L$123 
+
+        case 7:          //FIXME should beep
+            break;
+0835                          L$118:
+0835    EB 4C                     jmp         L$124 
+
+        case 8:
+            if(xcurs>0)xcurs--;
+0837                          L$119:
+0837    80 7E FA 00               cmp         byte ptr -0x6[bp],0x00 
+083B    76 07                     jbe         L$120 
+083D    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+0840    80 46 FA FF               add         byte ptr -0x6[bp],0xff 
+
+        break;
+0844                          L$120:
+0844    EB 3D                     jmp         L$124 
+
+
+        case '\r':
+            xcurs=0;
+0846                          L$121:
+0846    C6 46 FA 00               mov         byte ptr -0x6[bp],0x00 
+
+            break;
+084A    EB 37                     jmp         L$124 
+
+
+        case '\n':
+            ycurs++;
+084C                          L$122:
+084C    8A 46 F8                  mov         al,byte ptr -0x8[bp] 
+084F    FE 46 F8                  inc         byte ptr -0x8[bp] 
+
+            xcurs=0;
+0852    C6 46 FA 00               mov         byte ptr -0x6[bp],0x00 
+
+            break;
+0856    EB 2B                     jmp         L$124 
+
+       /*
+        case '\t':
+            do {
+                biosfn_write_teletype(' ',page,attr,flag);
+                //biosfn_get_cursor_pos(page, (Bit16u *)&dummy, (Bit16u *)&cursor);
+                cursor = read_word(BIOSMEM_SEG,BIOSMEM_CURSOR_POS); 
+                xcurs=cursor&0x00ff;ycurs=(cursor&0xff00)>>8;
+            } while(xcurs%8==0);
+            break;
+      */
+        default:
+                address=(xcurs+ycurs*nbcols)*2;
+0858                          L$123:
+0858    8A 46 F8                  mov         al,byte ptr -0x8[bp] 
+085B    30 E4                     xor         ah,ah 
+085D    F7 66 F0                  mul         word ptr -0x10[bp] 
+0860    89 C2                     mov         dx,ax 
+0862    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+0865    30 E4                     xor         ah,ah 
+0867    01 D0                     add         ax,dx 
+0869    D1 E0                     shl         ax,0x01 
+086B    89 46 F4                  mov         word ptr -0xc[bp],ax 
+
+                // Write the char
+                write_byte(0xB800,address,character);
+086E    8A 56 FC                  mov         dl,byte ptr -0x4[bp] 
+0871    8B 5E F4                  mov         bx,word ptr -0xc[bp] 
+0874    B8 00 B8                  mov         ax,0xb800 
+0877    1E                        push        ds 
+0878    8E D8                     mov         ds,ax 
+087A    88 17                     mov         byte ptr [bx],dl 
+087C    1F                        pop         ds 
+
+                xcurs++;
+087D    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+0880    FE 46 FA                  inc         byte ptr -0x6[bp] 
+
+    }
+
+    // Do we need to wrap ?
+    if(xcurs==nbcols) {
+0883                          L$124:
+0883    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+0886    30 E4                     xor         ah,ah 
+0888    3B 46 F0                  cmp         ax,word ptr -0x10[bp] 
+088B    75 0A                     jne         L$126 
+
+        xcurs=0;
+088D                          L$125:
+088D    C6 46 FA 00               mov         byte ptr -0x6[bp],0x00 
+
+        ycurs++;
+0891    8A 46 F8                  mov         al,byte ptr -0x8[bp] 
+0894    FE 46 F8                  inc         byte ptr -0x8[bp] 
+
+    }
+
+    // Do we need to scroll ?
+    /*
+    if(ycurs==nbrows) {
+        if(vga_modes[line].class==TEXT) {
+            biosfn_scroll(0x01,0x07,0,0,nbrows-1,nbcols-1,page,SCROLL_UP);
+        }
+        ycurs-=1;
+    }
+    */
+
+    // Set the cursor for the page
+    cursor=ycurs; cursor<<=8; cursor+=xcurs;
+0897                          L$126:
+0897    8A 46 F8                  mov         al,byte ptr -0x8[bp] 
+089A    30 E4                     xor         ah,ah 
+089C    89 46 EC                  mov         word ptr -0x14[bp],ax 
+089F    C1 66 EC 08               shl         word ptr -0x14[bp],0x08 
+08A3    8A 46 FA                  mov         al,byte ptr -0x6[bp] 
+08A6    30 E4                     xor         ah,ah 
+08A8    01 46 EC                  add         word ptr -0x14[bp],ax 
+
+   //biosfn_set_cursor_pos(page,cursor);
+   write_word(BIOSMEM_SEG, BIOSMEM_CURSOR_POS, cursor);
+08AB    8B 56 EC                  mov         dx,word ptr -0x14[bp] 
+08AE    BB 90 FF                  mov         bx,0xff90 
+08B1    B8 00 F0                  mov         ax,0xf000 
+08B4    1E                        push        ds 
+08B5    8E D8                     mov         ds,ax 
+08B7    89 17                     mov         word ptr [bx],dx 
+08B9    1F                        pop         ds 
+
+} 
+08BA                          L$127:
+08BA    C9                        leave       
+08BB    5F                        pop         di 
+08BC    5E                        pop         si 
+08BD    C3                        ret         
+08BE                          L$128:
+
+Routine Size: 647 bytes,    Routine Base: _TEXT + 0637
+
+No disassembly errors
+
+Segment: CONST WORD USE16 000000DD bytes
+0000                          L$129:
+0000    46 41 54 41 4C 3A 20 00                         FATAL: .
+0008                          L$130:
+0008    62 69 6F 73 5F 70 72 69 6E 74 66 3A 20 75 6E 6B bios_printf: unk
+0018    6E 6F 77 6E 20 66 6F 72 6D 61 74 0A 00          nown format..
+0025                          L$131:
+0025    28 63 29 20 32 30 30 39 2C 20 32 30 31 30 20 5A (c) 2009, 2010 Z
+0035    65 75 73 20 47 6F 6D 65 7A 20 4D 61 72 6D 6F 6C eus Gomez Marmol
+0045    65 6A 6F 20 61 6E 64 20 28 63 29 20 32 30 30 32 ejo and (c) 2002
+0055    20 4D 61 6E 64 72 61 6B 65 53 6F 66 74 20 53 2E  MandrakeSoft S.
+0065    41 2E 0A 00                                     A...
+0069                          L$132:
+0069    54 45 53 54 20 4D 45 4D 20 73 65 67 3A 20 25 78 TEST MEM seg: %x
+0079    20 0A 00                                         ..
+007C                          L$133:
+007C    54 45 53 54 20 4D 45 4D 20 73 74 61 72 74 3A 20 TEST MEM start: 
+008C    25 78 20 0A 00                                  %x ..
+0091                          L$134:
+0091    54 45 53 54 20 4D 45 4D 20 73 74 6F 70 3A 20 25 TEST MEM stop: %
+00A1    78 20 0A 00                                     x ..
+00A5                          L$135:
+00A5    45 52 52 4F 52 20 2D 4E 4F 00                   ERROR -NO.
+00AF                          L$136:
+00AF    54 45 53 54 20 4D 45 4D 20 45 52 52 3A 20 61 64 TEST MEM ERR: ad
+00BF    64 72 20 2D 20 25 78 2C 20 64 61 74 61 2D 20 25 dr - %x, data- %
+00CF    78 20 00                                        x .
+00D2                          L$137:
+00D2    0A 00                                           ..
+00D4                          L$138:
+00D4    46 49 4E 49 53 48 20 0A 00                      FINISH ..
+
+Segment: CONST2 WORD USE16 00000000 bytes
+
+Segment: _DATA WORD USE16 000003FA bytes
+0000                          _scan_to_scanascii:
+0000    00 00 00 00 00 00 00 00 00 00 1B 01 1B 01 1B 01 ................
+0010    00 01 00 00 31 02 21 02 00 00 00 78 00 00 32 03 ....1.!....x..2.
+0020    40 03 00 03 00 79 00 00 33 04 23 04 00 00 00 7A @....y..3.#....z
+0030    00 00 34 05 24 05 00 00 00 7B 00 00 35 06 25 06 ..4.$....{..5.%.
+0040    00 00 00 7C 00 00 36 07 5E 07 1E 07 00 7D 00 00 ...|..6.^....}..
+0050    37 08 26 08 00 00 00 7E 00 00 38 09 2A 09 00 00 7.&....~..8.*...
+0060    00 7F 00 00 39 0A 28 0A 00 00 00 80 00 00 30 0B ....9.(.......0.
+0070    29 0B 00 00 00 81 00 00 2D 0C 5F 0C 1F 0C 00 82 ).......-._.....
+0080    00 00 3D 0D 2B 0D 00 00 00 83 00 00 08 0E 08 0E ..=.+...........
+0090    7F 0E 00 00 00 00 09 0F 00 0F 00 00 00 00 00 00 ................
+00A0    71 10 51 10 11 10 00 10 40 00 77 11 57 11 17 11 q.Q.....@.w.W...
+00B0    00 11 40 00 65 12 45 12 05 12 00 12 40 00 72 13 ..@.e.E.....@.r.
+00C0    52 13 12 13 00 13 40 00 74 14 54 14 14 14 00 14 R.....@.t.T.....
+00D0    40 00 79 15 59 15 19 15 00 15 40 00 75 16 55 16 @.y.Y.....@.u.U.
+00E0    15 16 00 16 40 00 69 17 49 17 09 17 00 17 40 00 ....@.i.I.....@.
+00F0    6F 18 4F 18 0F 18 00 18 40 00 70 19 50 19 10 19 o.O.....@.p.P...
+0100    00 19 40 00 5B 1A 7B 1A 1B 1A 00 00 00 00 5D 1B ..@.[.{.......].
+0110    7D 1B 1D 1B 00 00 00 00 0D 1C 0D 1C 0A 1C 00 00 }...............
+0120    00 00 00 00 00 00 00 00 00 00 00 00 61 1E 41 1E ............a.A.
+0130    01 1E 00 1E 40 00 73 1F 53 1F 13 1F 00 1F 40 00 ....@.s.S.....@.
+0140    64 20 44 20 04 20 00 20 40 00 66 21 46 21 06 21 d D . . @.f!F!.!
+0150    00 21 40 00 67 22 47 22 07 22 00 22 40 00 68 23 .!@.g"G"."."@.h#
+0160    48 23 08 23 00 23 40 00 6A 24 4A 24 0A 24 00 24 H#.#.#@.j$J$.$.$
+0170    40 00 6B 25 4B 25 0B 25 00 25 40 00 6C 26 4C 26 @.k%K%.%.%@.l&L&
+0180    0C 26 00 26 40 00 3B 27 3A 27 00 00 00 00 00 00 .&.&@.;':'......
+0190    27 28 22 28 00 00 00 00 00 00 60 29 7E 29 00 00 '("(......`)~)..
+01A0    00 00 00 00 00 00 00 00 00 00 00 00 00 00 5C 2B ..............\+
+01B0    7C 2B 1C 2B 00 00 00 00 7A 2C 5A 2C 1A 2C 00 2C |+.+....z,Z,.,.,
+01C0    40 00 78 2D 58 2D 18 2D 00 2D 40 00 63 2E 43 2E @.x-X-.-.-@.c.C.
+01D0    03 2E 00 2E 40 00 76 2F 56 2F 16 2F 00 2F 40 00 ....@.v/V/././@.
+01E0    62 30 42 30 02 30 00 30 40 00 6E 31 4E 31 0E 31 b0B0.0.0@.n1N1.1
+01F0    00 31 40 00 6D 32 4D 32 0D 32 00 32 40 00 2C 33 .1@.m2M2.2.2@.,3
+0200    3C 33 00 00 00 00 00 00 2E 34 3E 34 00 00 00 00 <3.......4>4....
+0210    00 00 2F 35 3F 35 00 00 00 00 00 00 00 00 00 00 ../5?5..........
+0220    00 00 00 00 00 00 2A 37 2A 37 00 00 00 00 00 00 ......*7*7......
+0230    00 00 00 00 00 00 00 00 00 00 20 39 20 39 20 39 .......... 9 9 9
+0240    20 39 00 00 00 00 00 00 00 00 00 00 00 00 00 3B  9.............;
+0250    00 54 00 5E 00 68 00 00 00 3C 00 55 00 5F 00 69 .T.^.h...<.U._.i
+0260    00 00 00 3D 00 56 00 60 00 6A 00 00 00 3E 00 57 ...=.V.`.j...>.W
+0270    00 61 00 6B 00 00 00 3F 00 58 00 62 00 6C 00 00 .a.k...?.X.b.l..
+0280    00 40 00 59 00 63 00 6D 00 00 00 41 00 5A 00 64 .@.Y.c.m...A.Z.d
+0290    00 6E 00 00 00 42 00 5B 00 65 00 6F 00 00 00 43 .n...B.[.e.o...C
+02A0    00 5C 00 66 00 70 00 00 00 44 00 5D 00 67 00 71 .\.f.p...D.].g.q
+02B0    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+02C0    00 00 00 00 00 00 00 47 37 47 00 77 00 00 20 00 .......G7G.w.. .
+02D0    00 48 38 48 00 00 00 00 20 00 00 49 39 49 00 84 .H8H.... ..I9I..
+02E0    00 00 20 00 2D 4A 2D 4A 00 00 00 00 00 00 00 4B .. .-J-J.......K
+02F0    34 4B 00 73 00 00 20 00 00 4C 35 4C 00 00 00 00 4K.s.. ..L5L....
+0300    20 00 00 4D 36 4D 00 74 00 00 20 00 2B 4E 2B 4E  ..M6M.t.. .+N+N
+0310    00 00 00 00 00 00 00 4F 31 4F 00 75 00 00 20 00 .......O1O.u.. .
+0320    00 50 32 50 00 00 00 00 20 00 00 51 33 51 00 76 .P2P.... ..Q3Q.v
+0330    00 00 20 00 00 52 30 52 00 00 00 00 20 00 00 53 .. ..R0R.... ..S
+0340    2E 53 00 00 00 00 20 00 00 00 00 00 00 00 00 00 .S.... .........
+0350    00 00 00 00 00 00 00 00 00 00 00 00 5C 56 7C 56 ............\V|V
+0360    00 00 00 00 00 00 00 57 00 57 00 00 00 00 00 00 .......W.W......
+0370    00 58 00 58 00 00 00 00 00 00                   .X.X......
+037A                          _vga_modes:
+037A    00 00 00 04 00 B8 FF 02 01 00 00 04 00 B8 FF 02 ................
+038A    02 00 00 04 00 B8 FF 02 03 00 00 04 00 B8 FF 02 ................
+039A    04 01 02 02 00 B8 FF 01 05 01 02 02 00 B8 FF 01 ................
+03AA    06 01 02 01 00 B8 FF 01 07 00 01 04 00 B0 FF 00 ................
+03BA    0D 01 04 04 00 A0 FF 01 0E 01 04 04 00 A0 FF 01 ................
+03CA    0F 01 03 01 00 A0 FF 00 10 01 04 04 00 A0 FF 02 ................
+03DA    11 01 03 01 00 A0 FF 02 12 01 04 04 00 A0 FF 02 ................
+03EA    13 01 05 08 00 A0 FF 03 6A 01 04 04 00 A0 FF 02 ........j.......
+
+Segment: .debug_info BYTE USE32 00000A8C bytes
+0000                          L$139:
+0000    88 0A 00 00 02 00                               ......
+0006    00 00 00 00                                     DD	offset L$141
+000A    02 06 8B 0A 00 00 44 3A 5C 33 33 33 5F 5A 45 54 ......D:\333_ZET
+001A    5F 42 4F 4F 54 5C 7A 65 74 62 69 6F 73 2E 63 00 _BOOT\zetbios.c.
+002A    00 00 00 00                                     DD	offset L$140
+002E    01 00 56 31 2E 30 20 57 41 54 43 4F 4D 00 00    ..V1.0 WATCOM..
+003D    00 00 00 00                                     DD	offset L$142
+0041    00 00 00 00 02                                  .....
+0046    04 00 00 00                                     DD	offset L$143
+004A    09 63 68 61 72 00 08 01 09 73 69 67 6E 65 64 20 .char....signed 
+005A    63 68 61 72 00 06 01 09 75 6E 73 69 67 6E 65 64 char....unsigned
+006A    20 63 68 61 72 00 08 01 09 73 68 6F 72 74 00 05  char....short..
+007A    02 09 75 6E 73 69 67 6E 65 64 20 73 68 6F 72 74 ..unsigned short
+008A    00 07 02 09 69 6E 74 00 05 02 09 75 6E 73 69 67 ....int....unsig
+009A    6E 65 64 20 69 6E 74 00 07 02 09 6C 6F 6E 67 00 ned int....long.
+00AA    05 04 09 75 6E 73 69 67 6E 65 64 20 6C 6F 6E 67 ...unsigned long
+00BA    00 07 04 09 5F 5F 69 6E 74 36 34 00 05 08 09 75 ....__int64....u
+00CA    6E 73 69 67 6E 65 64 20 5F 5F 69 6E 74 36 34 00 nsigned __int64.
+00DA    07 08 09 5F 42 6F 6F 6C 00 07 01 0B 01 42 69 74 ..._Bool.....Bit
+00EA    38 75 00 61 00 00 00 0B 01 42 69 74 31 36 75 00 8u.a.....Bit16u.
+00FA    7B 00 00 00 2A 7D 01 00 00 01 08 36 01 73 76 67 {...*}.....6.svg
+010A    61 6D 6F 64 65 00 02 30 22 E5 00 00 00 36 01 63 amode..0"....6.c
+011A    6C 61 73 73 00 02 31 22 E5 00 00 00 36 01 6D 65 lass..1"....6.me
+012A    6D 6D 6F 64 65 6C 00 02 32 22 E5 00 00 00 36 01 mmodel..2"....6.
+013A    70 69 78 62 69 74 73 00 02 33 22 E5 00 00 00 36 pixbits..3"....6
+014A    01 73 73 74 61 72 74 00 02 34 22 F1 00 00 00 36 .sstart..4"....6
+015A    01 70 65 6C 6D 61 73 6B 00 02 36 22 E5 00 00 00 .pelmask..6"....
+016A    36 01 64 61 63 6D 6F 64 65 6C 00 02 37 22 E5 00 6.dacmodel..7"..
+017A    00 00 00 0B 01 56 47 41 4D 4F 44 45 53 00 FE 00 .....VGAMODES...
+018A    00 00 18 10 7D 01 00 00 D3 01 01 03 0A          ....}........
+0197    00 00                                           DW	seg _vga_modes
+0199    00 00 76 67 61 5F 6D 6F 64 65 73 00 03 03       ..vga_modes...
+01A7    00 00                                           DW	offset _vga_modes
+01A9    8C 01 00 00 2A 06 02 00 00 01 0A 36 01 6E 6F 72 ....*......6.nor
+01B9    6D 61 6C 00 02 30 22 F1 00 00 00 36 01 73 68 69 mal..0"....6.shi
+01C9    66 74 00 02 32 22 F1 00 00 00 36 01 63 6F 6E 74 ft..2"....6.cont
+01D9    72 6F 6C 00 02 34 22 F1 00 00 00 36 01 61 6C 74 rol..4"....6.alt
+01E9    00 02 36 22 F1 00 00 00 36 01 6C 6F 63 6B 5F 66 ..6"....6.lock_f
+01F9    6C 61 67 73 00 02 38 22 E5 00 00 00 00 18 59 AD lags..8"......Y.
+0209    01 00 00 D3 01 01 03 0A                         ........
+0211    00 00                                           DW	seg _scan_to_scanascii
+0213    00 00 73 63 61 6E 5F 74 6F 5F 73 63 61 6E 61 73 ..scan_to_scanas
+0223    63 69 69 00 03 03                               cii...
+0229    00 00                                           DW	offset _scan_to_scanascii
+022B    06 02 00 00 09 76 6F 69 64 00 07 00 88 01 97 02 .....void.......
+023B    00 00 01 2F 02 00 00 09 03 0A                   .../......
+0245    00 00                                           DW	seg _wcomport
+0247    77 63 6F 6D 70 6F 72 74 00 00 00 01 01 00 00 02 wcomport........
+0257    91 06                                           ..
+0259    00 00                                           DW	offset _wcomport
+025B    69 00                                           DW	offset _send
+025D    00 02 90 21 C8 01 63 00 02 91 08 03 92 22 02 E5 ...!..c......"..
+026D    00 00 00 66 96 02 00 00                         ...f....
+0275    09 00                                           DW	offset L$1
+0277    65 00                                           DW	offset L$7
+0279    D2 01 01 00 00 74 69 63 6B 73 00 02 91 7E E5 00 .....ticks...~..
+0289    00 00 66 95 02 00 00                            ..f....
+0290    20 00                                           DW	offset L$3
+0292    3E 00                                           DW	offset L$4
+0294    00 00 00 88 01 F5 02 00 00 01 2F 02 00 00 09 03 ........../.....
+02A4    0A                                              .
+02A5    00 00                                           DW	seg _send
+02A7    73 65 6E 64 00 00 00 01 01 00 00 02 91 06       send..........
+02B5    69 00                                           DW	offset _send
+02B7    9C 00                                           DW	offset _put_int
+02B9    00 02 90 21 C8 01 61 63 74 69 6F 6E 00 02 91 08 ...!..action....
+02C9    03 92 22 02 F1 00 00 00 C8 01 63 00 02 91 0A 03 ..".......c.....
+02D9    92 22 04 E5 00 00 00 66 F4 02 00 00             .".....f....
+02E5    72 00                                           DW	offset L$8
+02E7    98 00                                           DW	offset L$11
+02E9    66 F3 02 00 00                                  f....
+02EE    79 00                                           DW	offset L$9
+02F0    85 00                                           DW	offset L$10
+02F2    00 00 00 88 01 9B 03 00 00 01 2F 02 00 00 09 03 ........../.....
+0302    0A                                              .
+0303    00 00                                           DW	seg _put_int
+0305    70 75 74 5F 69 6E 74 00 00 00 01 01 00 00 02 91 put_int.........
+0315    06                                              .
+0316    9C 00                                           DW	offset _put_int
+0318    1F 01                                           DW	offset _put_uint
+031A    00 02 90 21 C8 01 61 63 74 69 6F 6E 00 02 91 08 ...!..action....
+032A    03 92 22 02 F1 00 00 00 C8 01 76 61 6C 00 02 91 ..".......val...
+033A    0A 03 92 22 04 72 00 00 00 C8 01 77 69 64 74 68 ...".r.....width
+034A    00 02 91 0C 03 92 22 06 72 00 00 00 0B 01 62 78 ......".r.....bx
+035A    5F 62 6F 6F 6C 00 7B 00 00 00 C8 01 6E 65 67 00 _bool.{.....neg.
+036A    02 91 0E 03 92 22 08 56 03 00 00 66 9A 03 00 00 .....".V...f....
+037A    A5 00                                           DW	offset L$12
+037C    1B 01                                           DW	offset L$16
+037E    D2 01 01 00 00 6E 76 61 6C 00 02 91 7E 72 00 00 .....nval...~r..
+038E    00 66 99 03 00 00                               .f....
+0394    D0 00                                           DW	offset L$13
+0396    FE 00                                           DW	offset L$15
+0398    00 00 00 88 01 34 04 00 00 01 2F 02 00 00 09 03 .....4..../.....
+03A8    0A                                              .
+03A9    00 00                                           DW	seg _put_uint
+03AB    70 75 74 5F 75 69 6E 74 00 00 00 01 01 00 00 02 put_uint........
+03BB    91 06                                           ..
+03BD    1F 01                                           DW	offset _put_uint
+03BF    A5 01                                           DW	offset _put_luint
+03C1    00 02 90 21 C8 01 61 63 74 69 6F 6E 00 02 91 08 ...!..action....
+03D1    03 92 22 02 F1 00 00 00 C8 01 76 61 6C 00 02 91 ..".......val...
+03E1    0A 03 92 22 04 7B 00 00 00 C8 01 77 69 64 74 68 ...".{.....width
+03F1    00 02 91 0C 03 92 22 06 72 00 00 00 C8 01 6E 65 ......".r.....ne
+0401    67 00 02 91 0E 03 92 22 08 56 03 00 00 66 33 04 g......".V...f3.
+0411    00 00                                           ..
+0413    28 01                                           DW	offset L$17
+0415    A1 01                                           DW	offset L$21
+0417    D2 01 01 00 00 6E 76 61 6C 00 02 91 7E 7B 00 00 .....nval...~{..
+0427    00 66 32 04 00 00                               .f2...
+042D    56 01                                           DW	offset L$18
+042F    84 01                                           DW	offset L$20
+0431    00 00 00 88 01 CE 04 00 00 01 2F 02 00 00 09 03 ........../.....
+0441    0A                                              .
+0442    00 00                                           DW	seg _put_luint
+0444    70 75 74 5F 6C 75 69 6E 74 00 00 00 01 01 00 00 put_luint.......
+0454    02 91 06                                        ...
+0457    A5 01                                           DW	offset _put_luint
+0459    38 02                                           DW	offset _put_str
+045B    00 02 90 21 C8 01 61 63 74 69 6F 6E 00 02 91 08 ...!..action....
+046B    03 92 22 02 F1 00 00 00 C8 01 76 61 6C 00 02 91 ..".......val...
+047B    0A 03 92 22 04 AC 00 00 00 C8 01 77 69 64 74 68 ...".......width
+048B    00 02 91 0E 03 92 22 08 72 00 00 00 C8 01 6E 65 ......".r.....ne
+049B    67 00 02 91 10 03 92 22 0A 56 03 00 00 66 CD 04 g......".V...f..
+04AB    00 00                                           ..
+04AD    AE 01                                           DW	offset L$22
+04AF    34 02                                           DW	offset L$26
+04B1    D2 01 01 00 00 6E 76 61 6C 00 02 91 7A AC 00 00 .....nval...z...
+04C1    00 66 CC 04 00 00                               .f....
+04C7    E9 01                                           DW	offset L$23
+04C9    17 02                                           DW	offset L$25
+04CB    00 00 00 88 01 57 05 00 00 01 2F 02 00 00 09 03 .....W..../.....
+04DB    0A                                              .
+04DC    00 00                                           DW	seg _put_str
+04DE    70 75 74 5F 73 74 72 00 00 00 01 01 00 00 02 91 put_str.........
+04EE    06                                              .
+04EF    38 02                                           DW	offset _put_str
+04F1    72 02                                           DW	offset _bios_printf
+04F3    00 02 90 21 C8 01 61 63 74 69 6F 6E 00 02 91 08 ...!..action....
+0503    03 92 22 02 F1 00 00 00 C8 01 73 65 67 6D 65 6E ..".......segmen
+0513    74 00 02 91 0A 03 92 22 04 F1 00 00 00 C8 01 6F t......".......o
+0523    66 66 73 65 74 00 02 91 0C 03 92 22 06 F1 00 00 ffset......"....
+0533    00 66 56 05 00 00                               .fV...
+0539    41 02                                           DW	offset L$27
+053B    6E 02                                           DW	offset L$30
+053D    D2 01 01 00 00 63 00 02 91 7E E5 00 00 00 66 55 .....c...~....fU
+054D    05 00 00                                        ...
+0550    56 02                                           DW	offset L$28
+0552    6C 02                                           DW	offset L$29
+0554    00 00 00 88 01 38 07 00 00 01 2F 02 00 00 09 03 .....8..../.....
+0564    0A                                              .
+0565    00 00                                           DW	seg _bios_printf
+0567    62 69 6F 73 5F 70 72 69 6E 74 66 00 00 00 01 01 bios_printf.....
+0577    00 00 02 91 06                                  .....
+057C    72 02                                           DW	offset _bios_printf
+057E    37 06                                           DW	offset _print_bios_banner
+0580    00 02 90 21 C8 01 61 63 74 69 6F 6E 00 02 91 08 ...!..action....
+0590    03 92 22 02 F1 00 00 00 10 01 E5 00 00 00 C8 01 ..".............
+05A0    73 00 02 91 0A 03 92 22 04 98 05 00 00 66 37 07 s......".....f7.
+05B0    00 00                                           ..
+05B2    7B 02                                           DW	offset L$31
+05B4    33 06                                           DW	offset L$98
+05B6    D2 01 01 00 00 63 00 02 91 7E E5 00 00 00 D2 01 .....c...~......
+05C6    01 00 00 69 6E 5F 66 6F 72 6D 61 74 00 02 91 6E ...in_format...n
+05D6    56 03 00 00 D2 01 01 00 00 69 00 02 91 70 72 00 V........i...pr.
+05E6    00 00 10 01 F1 00 00 00 D2 01 01 00 00 61 72 67 .............arg
+05F6    5F 70 74 72 00 02 91 72 E8 05 00 00 D2 01 01 00 _ptr...r........
+0606    00 61 72 67 5F 73 65 67 00 02 91 74 F1 00 00 00 .arg_seg...t....
+0616    D2 01 01 00 00 61 72 67 00 02 91 76 F1 00 00 00 .....arg...v....
+0626    D2 01 01 00 00 6E 69 62 62 6C 65 00 02 91 78 F1 .....nibble...x.
+0636    00 00 00 D2 01 01 00 00 68 69 62 79 74 65 00 02 ........hibyte..
+0646    91 7A F1 00 00 00 D2 01 01 00 00 66 6F 72 6D 61 .z.........forma
+0656    74 5F 77 69 64 74 68 00 02 91 6C F1 00 00 00 D2 t_width...l.....
+0666    01 01 00 00 68 65 78 61 64 64 00 02 91 7C F1 00 ....hexadd...|..
+0676    00 00 66 2C 07 00 00                            ..f,...
+067D    BE 02                                           DW	offset L$33
+067F    25 06                                           DW	offset L$94
+0681    66 8B 06 00 00                                  f....
+0686    C4 02                                           DW	offset L$34
+0688    CE 02                                           DW	offset L$35
+068A    00 66 21 07 00 00                               .f!...
+0690    DA 02                                           DW	offset L$37
+0692    0D 06                                           DW	offset L$91
+0694    66 9E 06 00 00                                  f....
+0699    E8 02                                           DW	offset L$39
+069B    F9 02                                           DW	offset L$40
+069D    00 66 20 07 00 00                               .f ...
+06A3    FC 02                                           DW	offset L$41
+06A5    0D 06                                           DW	offset L$91
+06A7    66 BB 06 00 00                                  f....
+06AC    21 03                                           DW	offset L$42
+06AE    96 03                                           DW	offset L$51
+06B0    66 BA 06 00 00                                  f....
+06B5    4B 03                                           DW	offset L$47
+06B7    8D 03                                           DW	offset L$50
+06B9    00 00 66 C5 06 00 00                            ..f....
+06C0    9F 03                                           DW	offset L$53
+06C2    B3 03                                           DW	offset L$54
+06C4    00 66 F7 06 00 00                               .f....
+06CA    BF 03                                           DW	offset L$56
+06CC    55 05                                           DW	offset L$75
+06CE    66 D8 06 00 00                                  f....
+06D3    EF 03                                           DW	offset L$57
+06D5    62 04                                           DW	offset L$59
+06D7    00 66 E2 06 00 00                               .f....
+06DD    6B 04                                           DW	offset L$61
+06DF    99 04                                           DW	offset L$62
+06E1    00 66 F6 06 00 00                               .f....
+06E7    AB 04                                           DW	offset L$64
+06E9    55 05                                           DW	offset L$75
+06EB    66 F5 06 00 00                                  f....
+06F0    D8 04                                           DW	offset L$69
+06F2    4B 05                                           DW	offset L$74
+06F4    00 00 00 66 01 07 00 00                         ...f....
+06FC    5E 05                                           DW	offset L$77
+06FE    92 05                                           DW	offset L$79
+0700    00 66 0B 07 00 00                               .f....
+0706    9B 05                                           DW	offset L$81
+0708    AC 05                                           DW	offset L$82
+070A    00 66 15 07 00 00                               .f....
+0710    B4 05                                           DW	offset L$84
+0712    E2 05                                           DW	offset L$85
+0714    00 66 1F 07 00 00                               .f....
+071A    EA 05                                           DW	offset L$87
+071C    FA 05                                           DW	offset L$88
+071E    00 00 00 66 2B 07 00 00                         ...f+...
+0726    0F 06                                           DW	offset L$92
+0728    1F 06                                           DW	offset L$93
+072A    00 00 66 36 07 00 00                            ..f6...
+0731    2F 06                                           DW	offset L$96
+0733    33 06                                           DW	offset L$98
+0735    00 00 00 88 01 0E 08 00 00 01 2F 02 00 00 09 03 ........../.....
+0745    0A                                              .
+0746    00 00                                           DW	seg _print_bios_banner
+0748    70 72 69 6E 74 5F 62 69 6F 73 5F 62 61 6E 6E 65 print_bios_banne
+0758    72 00 01 00 01 01 00 00 02 91 06                r..........
+0763    37 06                                           DW	offset _print_bios_banner
+0765    D5 06                                           DW	offset _mem_test
+0767    00 02 90 21 66 0D 08 00 00                      ...!f....
+0770    40 06                                           DW	offset L$99
+0772    D1 06                                           DW	offset L$101
+0774    D2 01 01 00 00 76 61 6C 00 02 91 7C E5 00 00 00 .....val...|....
+0784    D2 01 01 00 00 70 61 74 74 65 72 6E 00 02 91 7E .....pattern...~
+0794    E5 00 00 00 D2 01 01 00 00 69 6E 63 72 00 02 91 .........incr...
+07A4    7A E5 00 00 00 D2 01 01 00 00 72 65 61 64 62 61 z.........readba
+07B4    63 6B 00 02 91 78 E5 00 00 00 D2 01 01 00 00 61 ck...x.........a
+07C4    64 64 72 00 02 91 70 F1 00 00 00 D2 01 01 00 00 ddr...p.........
+07D4    73 74 61 72 74 00 02 91 72 F1 00 00 00 D2 01 01 start...r.......
+07E4    00 00 65 6E 64 00 02 91 74 F1 00 00 00 D2 01 01 ..end...t.......
+07F4    00 00 74 65 73 74 65 64 5F 73 65 67 6D 65 6E 74 ..tested_segment
+0804    00 02 91 76 F1 00 00 00 00 00 88 01 FE 08 00 00 ...v............
+0814    01 2F 02 00 00 09 03 0A                         ./......
+081C    00 00                                           DW	seg _mem_test
+081E    6D 65 6D 5F 74 65 73 74 00 00 00 01 01 00 00 02 mem_test........
+082E    91 06                                           ..
+0830    D5 06                                           DW	offset _mem_test
+0832    B8 07                                           DW	offset _biosfn_set_cursor_pos
+0834    00 02 90 21 C8 01 74 65 73 74 65 64 5F 73 65 67 ...!..tested_seg
+0844    6D 65 6E 74 00 02 91 08 03 92 22 02 F1 00 00 00 ment......".....
+0854    C8 01 73 74 61 72 74 00 02 91 0A 03 92 22 04 F1 ..start......"..
+0864    00 00 00 C8 01 65 6E 64 00 02 91 0C 03 92 22 06 .....end......".
+0874    F1 00 00 00 C8 01 70 61 74 74 65 72 6E 00 02 91 ......pattern...
+0884    0E 03 92 22 08 E5 00 00 00 C8 01 69 6E 63 72 00 ...".......incr.
+0894    02 91 10 03 92 22 0A E5 00 00 00 66 FD 08 00 00 .....".....f....
+08A4    DE 06                                           DW	offset L$102
+08A6    B4 07                                           DW	offset L$113
+08A8    D2 01 01 00 00 76 61 6C 00 02 91 7C E5 00 00 00 .....val...|....
+08B8    D2 01 01 00 00 72 65 61 64 62 61 63 6B 00 02 91 .....readback...
+08C8    7E E5 00 00 00 D2 01 01 00 00 61 64 64 72 00 02 ~.........addr..
+08D8    91 7A F1 00 00 00 66 E8 08 00 00                .z....f....
+08E3    2F 07                                           DW	offset L$104
+08E5    44 07                                           DW	offset L$105
+08E7    00 66 FC 08 00 00                               .f....
+08ED    61 07                                           DW	offset L$108
+08EF    94 07                                           DW	offset L$111
+08F1    66 FB 08 00 00                                  f....
+08F6    78 07                                           DW	offset L$109
+08F8    8E 07                                           DW	offset L$110
+08FA    00 00 00 00 88 01 90 09 00 00 01 2F 02 00 00 09 .........../....
+090A    03 0A                                           ..
+090C    00 00                                           DW	seg _biosfn_set_cursor_pos
+090E    62 69 6F 73 66 6E 5F 73 65 74 5F 63 75 72 73 6F biosfn_set_curso
+091E    72 5F 70 6F 73 00 00 00 01 01 00 00 02 91 06    r_pos..........
+092D    B8 07                                           DW	offset _biosfn_set_cursor_pos
+092F    D4 07                                           DW	offset _biosfn_prnt_char
+0931    00 02 90 21 C8 01 70 61 67 65 00 02 91 08 03 92 ...!..page......
+0941    22 02 E5 00 00 00 C8 01 63 75 72 73 6F 72 00 02 ".......cursor..
+0951    91 0A 03 92 22 04 F1 00 00 00 66 8F 09 00 00    ....".....f....
+0960    C1 07                                           DW	offset L$114
+0962    D0 07                                           DW	offset L$115
+0964    D2 01 01 00 00 63 75 72 72 65 6E 74 00 02 91 7E .....current...~
+0974    E5 00 00 00 D2 01 01 00 00 63 72 74 63 5F 61 64 .........crtc_ad
+0984    64 72 00 02 91 7C F1 00 00 00 00 00 88 01 8A 0A dr...|..........
+0994    00 00 01 2F 02 00 00 09 03 0A                   .../......
+099E    00 00                                           DW	seg _biosfn_prnt_char
+09A0    62 69 6F 73 66 6E 5F 70 72 6E 74 5F 63 68 61 72 biosfn_prnt_char
+09B0    00 00 00 01 01 00 00 02 91 06                   ..........
+09BA    D4 07                                           DW	offset _biosfn_prnt_char
+09BC    BE 08                                           DW	offset L$128
+09BE    00 02 90 21 C8 01 63 61 72 00 02 91 08 03 92 22 ...!..car......"
+09CE    02 E5 00 00 00 66 89 0A 00 00                   .....f....
+09D8    DD 07                                           DW	offset L$116
+09DA    BA 08                                           DW	offset L$127
+09DC    D2 01 01 00 00 78 63 75 72 73 00 02 91 7A E5 00 .....xcurs...z..
+09EC    00 00 D2 01 01 00 00 79 63 75 72 73 00 02 91 78 .......ycurs...x
+09FC    E5 00 00 00 D2 01 01 00 00 6C 69 6E 65 00 02 91 .........line...
+0A0C    76 E5 00 00 00 D2 01 01 00 00 6E 62 63 6F 6C 73 v.........nbcols
+0A1C    00 02 91 70 F1 00 00 00 D2 01 01 00 00 6E 62 72 ...p.........nbr
+0A2C    6F 77 73 00 02 91 72 F1 00 00 00 D2 01 01 00 00 ows...r.........
+0A3C    61 64 64 72 65 73 73 00 02 91 74 F1 00 00 00 D2 address...t.....
+0A4C    01 01 00 00 63 75 72 73 6F 72 00 02 91 6C F1 00 ....cursor...l..
+0A5C    00 00 D2 01 01 00 00 63 68 61 72 61 63 74 65 72 .......character
+0A6C    00 02 91 7C E5 00 00 00 66 7E 0A 00 00          ...|....f~...
+0A79    35 08                                           DW	offset L$118
+0A7B    83 08                                           DW	offset L$124
+0A7D    00 66 88 0A 00 00                               .f....
+0A83    8D 08                                           DW	offset L$125
+0A85    97 08                                           DW	offset L$126
+0A87    00 00 00 00 00                                  .....
+
+Segment: .debug_pubnames BYTE USE32 00000028 bytes
+0000    24 00 00 00 02 00                               $.....
+0006    00 00 00 00                                     DD	offset L$139
+000A    BE 08 00 00 38 07 00 00 70 72 69 6E 74 5F 62 69 ....8...print_bi
+001A    6F 73 5F 62 61 6E 6E 65 72 00 00 00 00 00       os_banner.....
+
+Segment: .debug_aranges BYTE USE32 00000024 bytes
+0000    20 00 00 00 02 00                                .....
+0006    00 00 00 00                                     DD	offset L$139
+000A    02 02                                           ..
+000C    00 00                                           DW	offset _wcomport
+000E    00 00                                           DW	seg _wcomport
+0010    BE 08                                           ..
+0012    00 00                                           DW	offset DGROUP:L$129
+0014    00 00                                           DW	seg DGROUP:L$129
+0016    DD 00                                           ..
+0018    00 00                                           DW	offset DGROUP:_scan_to_scanascii
+001A    00 00                                           DW	seg DGROUP:_scan_to_scanascii
+001C    FA 03 00 00 00 00 00 00                         ........
+
+Segment: .debug_line BYTE USE32 0000012D bytes
+0000                          L$140:
+0000    29 01 00 00 02 00 10 00 00 00 01 00 FF 04 0A 00 )...............
+0010    01 01 01 01 00 00 00 00 00 00 00 1E 03 44 3A 5C .............D:\
+0020    33 33 33 5F 5A 45 54 5F 42 4F 4F 54 5C 7A 65 74 333_ZET_BOOT\zet
+0030    62 69 6F 73 2E 63 00 00 00 00 00 03 02          bios.c.......
+003D    00 00                                           DW	offset _wcomport
+003F    00 03 04                                        ...
+0042    00 00                                           DW	seg _wcomport
+0044    06 05 01 03 9F 01 01 03 03 2F 49 2C 84 14 84 28 ........./I,...(
+0054    1D 31 29 3D 58 1D 31 3C 80 14 74 5D 80 1D 31 48 .1)=X.1<..t]..1H
+0064    80 14 74 5D 80 1D 31 5C A0 14 74 5D 80 1D 03 03 ..t]..1\..t]....
+0074    2F 60 4C 24 14 03 0A 1B 03 08 2F 24 21 20 21 38 /`L$....../$! !8
+0084    3D 68 24 20 21 3C 44 51 18 28 48 48 38 38 28 40 =h$ !<DQ.(HH88(@
+0094    58 C8 31 30 5D 3C 24 44 28 48 24 08 24 CD 30 C5 X.10]<$D(H$.$.0.
+00A4    54 38 38 28 4C 08 28 C8 03 03 33 30 84 65 30 51 T88(L.(...30.e0Q
+00B4    2C 24 28 48 55 2C 4D 44 03 03 1F 14 4D 24 19 28 ,$(HU,MD....M$.(
+00C4    03 06 1B 03 08 1B 03 05 2F 38 3D 20 1C 1C 20 20 ......../8= ..  
+00D4    03 18 83 20 1C 1C 20 20 85 44 14 03 05 1B 03 05 ... ..  .D......
+00E4    2F 4C 4C 4C 3D 60 48 24 2C 60 48 2D 03 03 63 24 /LLL=`H$,`H-..c$
+00F4    2C 3C 3C 03 03 1B 03 07 2F 03 0B 47 03 1B 1B 03 ,<<...../..G....
+0104    08 2F 03 05 23 48 03 03 4F 20 21 AD 15 40 03 03 ./..#H..O !..@..
+0114    13 1C 03 03 13 24 1C 03 0C 13 65 48 03 04 23 34 .....$....eH..#4
+0124    1C 03 0E 23 5D 48 00 01 01                      ...#]H...
+
+Segment: .debug_loc BYTE USE32 00000000 bytes
+
+Segment: .debug_abbrev BYTE USE32 000000C6 bytes
+0000                          L$141:
+0000    06 11 01 01 13 03 08 10 06 13 0F 1B 08 25 08 42 .............%.B
+0010    0F 43 06 35 10 82 41 0B 83 41 06 00 00 09 24 00 .C.5..A..A....$.
+0020    03 08 3E 0B 0B 0B 00 00 0B 16 00 32 0B 03 08 49 ..>........2...I
+0030    13 00 00 2A 13 01 01 13 32 0B 0B 0F 00 00 36 0D ...*....2.....6.
+0040    00 32 0B 03 08 38 0A 49 13 00 00 18 01 00 37 0F .2...8.I......7.
+0050    49 13 00 00 D3 01 34 00 32 0B 46 0A 3F 0C 34 0C I.....4.2.F.?.4.
+0060    03 08 02 0A 49 13 00 00 88 01 2E 01 01 13 32 0B ....I.........2.
+0070    49 13 2C 0F 46 0A 03 08 3F 0C 20 0B 36 0B 27 0C I.,.F...?. .6.'.
+0080    4C 0B 34 0C 2A 0A 11 01 12 01 33 0B 40 0A 00 00 L.4.*.....3.@...
+0090    C8 01 05 00 03 08 02 0A 84 41 0A 49 13 00 00 66 .........A.I...f
+00A0    0B 01 01 13 11 01 12 01 00 00 D2 01 34 00 32 0B ............4.2.
+00B0    3F 0C 34 0C 03 08 02 0A 49 13 00 00 10 0F 00 33 ?.4.....I......3
+00C0    0B 49 13 00 00 00                               .I....
+
+Segment: .debug_macinfo BYTE USE32 00000001 bytes
+0000                          L$142:
+0000    00                                              .
+
+Segment: .debug_str BYTE USE32 00000000 bytes
+
+Segment: .WATCOM_references BYTE USE32 00000004 bytes
+0000    00 00 00 00                                     ....
+0004                          L$143:
+

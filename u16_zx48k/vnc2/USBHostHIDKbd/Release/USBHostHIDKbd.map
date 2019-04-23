@@ -1,0 +1,48 @@
+Future Technology Devices International Limited (c) 2007-2010, All Rights Reserved
+
+
+CPU_CORE =   VC2, CPU_RAM_SIZE= 16 KB, CPU_ROM_SIZE=256 KB
+
+Linker Version  = V1.0.1 Loader Version =  V1.0.1
+Tue Jul 15 11:32:43 2014
+
+
+=================================================================================================================
+
+SEGMENT_MAP    
+=================================================================================================================
+
+Start Address                  Segment Name                   Segment Size
+=================================================================================================================
+
+0003c0 .text                          000000cf2c
+00d2ec .dataFlash                     000000005f
+000000 .dataRAM                       000000005f
+00005f .bss                           000000016a
+0001c9 .HeapRAM                       0000003a36
+
+=================================================================================================================
+
+SYMBOL_TABLE   
+=================================================================================================================
+
+SYM ADDRESS PUBLIC SYM NAME                SYM TYPE   MEM TYPE FILE NAME            SYM SIZE  
+NOTE:L=LABEL F=FUNCTION 0=FLASH and 1=RAM
+=================================================================================================================
+
+0043a number                         F              0 USBHostHIDKbd.obj    0001b
+00455 main                           F              0 USBHostHIDKbd.obj    00098
+004ed usbhost_connect_state          F              0 USBHostHIDKbd.obj    00058
+00545 hid_attach                     F              0 USBHostHIDKbd.obj    000e2
+00627 HID_detach                     F              0 USBHostHIDKbd.obj    0002e
+00655 open_drivers                   F              0 USBHostHIDKbd.obj    00024
+00679 attach_drivers                 F              0 USBHostHIDKbd.obj    00010
+00689 close_drivers                  F              0 USBHostHIDKbd.obj    00010
+00699 firmware                       F              0 USBHostHIDKbd.obj    0017a
+0005f buf                            L              1 USBHostHIDKbd.obj    00040
+0009f hUART                          L              1 USBHostHIDKbd.obj    00002
+000a1 hUSBHOST_2                     L              1 USBHostHIDKbd.obj    00002
+000a3 tcbFIRMWARE                    L              1 USBHostHIDKbd.obj    00002
+000a5 hUSBHOST_HID                   L              1 USBHostHIDKbd.obj    00002
+000a7 hGPIO_PORT_A                   L              1 USBHostHIDKbd.obj    00002
+0d249 iomux_setup                    F              0 USBHostHIDKbd_iomux.obj 000a3

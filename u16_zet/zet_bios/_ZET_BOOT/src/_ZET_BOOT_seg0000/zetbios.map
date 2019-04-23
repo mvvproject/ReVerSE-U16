@@ -1,0 +1,72 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       15/04/21 23:15:35
+Executable Image: zetbios.rom
+creating a DOS executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          0000:e500            00001270
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+_DATA                  DATA           DGROUP         0000:e500       000003fa
+_TEXT                  CODE           DGROUP         0000:eb00       00000c70
+_BIOSSEG               CODE           AUTO           0000:fe00       00000200
+CONST                  DATA           DGROUP         0e8f:000a       00000125
+CONST2                 DATA           DGROUP         0ea2:0000       00000000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: zetbios_vers.obj(D:\Proj_my\ZET BASE\U16\2015_04_21a U16_ZET (USB KeyB)\_ZET_BOOT\src\_ZET_BOOT_seg0000\zetbios_vers.c)
+0000:eb00+     _Delay
+0000:f168+     _send_LED
+0000:f180+     _do_go_exec
+0000:f1a2+     _Read_UART
+0000:f1d5+     _CLS
+0000:f231      _print_bios_banner
+Module: C:\WATCOM/lib286/dos\clibs.lib(i4d)
+0000:f6a2*     __I4D
+0000:f6eb      __U4D
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
+0000:f770      _small_code_
+0000:f770*     CodeModelMismatch
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\WATCOM/lib286/dos\clibs.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  1000 (4096.)
+Memory size:  1390 (5008.)
+Entry point address: 0000:fe00
+Link time: 00:00.00

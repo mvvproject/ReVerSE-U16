@@ -1,0 +1,70 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       15/04/22 09:38:12
+Executable Image: zetbios.rom
+creating a DOS executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          f000:e500            000012c4
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+_DATA                  DATA           DGROUP         f000:e500       000003fa
+_TEXT                  CODE           DGROUP         f000:eb00       00000cc4
+_BIOSSEG               CODE           AUTO           f000:ff00       00000100
+CONST                  DATA           DGROUP         fe8f:000a       00000186
+CONST2                 DATA           DGROUP         fea8:0000       00000000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: zetbios_vers.obj(D:\Proj_my\ZET BASE\U16\2015_04_21a U16_ZET (USB KeyB)\_ZET_BOOT\src\_bios_segF000_short\zetbios_vers.c)
+f000:eb00+     _Delay
+f000:f177+     _send_LED
+f000:f18f+     _Read_UART
+f000:f1bc      _print_bios_banner
+Module: C:\WATCOM/lib286/dos\clibs.lib(i4d)
+f000:f6f6*     __I4D
+f000:f73f      __U4D
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
+f000:f7c4      _small_code_
+f000:f7c4*     CodeModelMismatch
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\WATCOM/lib286/dos\clibs.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  1000 (4096.)
+Memory size:  1350 (4944.)
+Entry point address: f000:ff00
+Link time: 00:00.00

@@ -1,0 +1,30 @@
+!define BLANK ""
+"D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios\entry.o&
+bj" : "D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios\e&
+ntry.asm" .AUTODEPEND
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios
+ *wasm entry.asm -ms -w3 -e25
+
+"D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios\zetbios&
+.obj" : "D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios&
+\zetbios.c" .AUTODEPEND
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios
+ *wcc zetbios.c -i="C:\WATCOM/h" -w3 -e25 -zq -s -ecc -od -d2 -zu -1 -bt=dos&
+ -fo=.obj -ms
+
+"D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios\Zbios.c&
+om" : "D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios\e&
+ntry.obj" "D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbi&
+os\zetbios.obj" .AUTODEPEND
+ @D:
+ cd D:\Proj_my\ZET BASE\U16\2015_04_12 U16_ZET (SDRAM)\WATCOM IDE\Zbios
+ @%write Zbios.lk1 FIL entry.obj,zetbios.obj
+ @%append Zbios.lk1 
+ *wlink name Zbios d all sys dos com OPTION quiet, NOFARCALLS , MAP OUTPUT r&
+aw offset=0xf0000 ORDER clname DATA segment _DATA segaddr=0xf000 offset=0xe5&
+00 clname CODE segment _TEXT segaddr=0xf000 offset=0xeA00 segment _BIOSSEG s&
+egaddr=0xf000 offset=0xF800 disable 1014 op m libr clibs.lib op maxe=25 op q&
+ op symf @Zbios.lk1
+

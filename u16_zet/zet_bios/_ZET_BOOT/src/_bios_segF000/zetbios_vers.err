@@ -1,0 +1,7 @@
+zetbios_vers.c(388): Warning! W202: Symbol 'flash_data' has been defined, but not referenced
+zetbios_vers.c(646): Warning! W202: Symbol 'crtc_addr' has been defined, but not referenced
+zetbios_vers.c(691): Warning! W202: Symbol 'line' has been defined, but not referenced
+zetbios_vers.c(665): Warning! W202: Symbol 'biosfn_get_cursor_pos' has been defined, but not referenced
+zetbios_vers.c(677): Warning! W202: Symbol 'find_vga_entry' has been defined, but not referenced
+zetbios_vers.c(615): Warning! W202: Symbol 'mem_test' has been defined, but not referenced
+zetbios_vers.c(202): Warning! W202: Symbol 'send_my' has been defined, but not referenced
